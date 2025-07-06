@@ -1,0 +1,18 @@
+{
+    "token": "",
+    "prefix": "!",
+    "logs": true,
+    "use_enhanced_cloner": true,
+    "clone_messages": false,
+    "message_limit": 100,
+    "clear_guild": true,
+    "copy_settings": {
+        "categories": true,
+        "channels": true,
+        "emojis": true,
+        "roles": true
+    },
+    "use_webhook": false,
+    "webhook_url": "",
+    "auto_post_channels": []
+}

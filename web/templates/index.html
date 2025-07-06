@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Discord Tools - Advanced Server Cloner & Auto Poster</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="icon" type="image/x-icon" href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTIwLjMxNyA0LjM2OTQ5QzE4Ljc4MDMgMy41MDc2NyAxNy4wOTQzIDIuODUyNDMgMTUuMzMxOCAyLjQxOTczQzE1LjEwOTIgMi44NTI1OSAxNC44NjAyIDMuNDQxODEgMTQuNjc5NCAzLjkxNDM3QzEyLjgzODcgMy42NTE0IDExLjAwNzUgMy42NTE0IDkuMTk2NDIgMy45MTQzN0M5LjAxNTY0IDMuNDQxODEgOC43NTQ3IDIuODUyNTkgOC41MzA5NyAyLjQxOTczQzYuNzY2ODcgMi44NTI0MyA1LjA3OTQzIDMuNTA3NjcgMy41NDI4IDQuMzY5NDlDMC45MjY0NDEgOC40MTUzNSAtMC4wMTUyNTQ3IDEyLjM2MDQgMS4wODkgMTUuODY3NEMzLjE0MjYgMTcuNDQ3NyA1LjE0NDMgMTguNDczNSA3LjE1NTM0IDE5LjE5N0M3LjY1NzggMTguNTQ1OCA4LjExMTgzIDE3Ljg1MjkgOC41MTIzNiAxNy4xMjI5QzguNzkwMjEgMTYuNTQ2MSA4LjQ2Njk1IDE2LjAwMTYgNy45MDUwOCAxNi4wMDE2QzcuMzQzMjEgMTYuMDAxNiA2LjgyOTIzIDE1LjY5NDcgNi42NDQ3MSAxNS4yNDE3QzYuNDYwMiAxNC43ODg2IDYuMjk3OTYgMTQuMzIxNiA2LjE0MjcyIDEzLjg4NkM1Ljg4NTAyIDEzLjE4OTEgNS41MjM2NCAxMi41MzIxIDUuMDc5MzIgMTEuOTMzM0M0LjYzNSAxMS4zMzQ1IDQuMTE3MzEgMTAuODA4NCAzLjU0Mjg2IDEwLjM2OThDMy41NDI4NiA5LjkyNTM5IDMuODk0NjQgOS41ODA5NiA0LjM3MTYzIDkuNTgwOTZDNC44NDg2MSA5LjU4MDk2IDUuMzI1NiA5LjkyNTM5IDUuMzI1NiAxMC4zNjk4QzUuODE2IDEwLjgwODQgNi4zMDkzMSAxMS4zMzQ1IDYuNzY2ODUgMTEuOTMzM0M3LjIyNDM5IDEyLjUzMjEgNy41NzIyMSAxMy4xODkxIDcuODE4NSAxMy44ODZDNy45NzM3NCAxNC4zMjE2IDguMTM1OTggMTQuNzg4NiA4LjMyMDUgMTUuMjQxN0M4LjUwNTAyIDE1LjY5NDcgOS4wMTkgMTYuMDAxNiA5LjU4MDg3IDE2LjAwMTZDMTAuMTQyNyAxNi4wMDE2IDEwLjQ2NiAxNi41NDYxIDEwLjE4ODEgMTcuMTIyOUM5Ljc4NzU5IDE3Ljg1MjkgOS4zMzM1NSAxOC41NDU4IDguODMxMSAxOS4xOTdDMTAuODQyMSAxOC40NzM1IDEyLjg0MzggMTcuNDQ3NyAxNC44OTc0IDE1Ljg2NzRDMTUuODkxMiAxMi4zNjA0IDEzLjk0OTQgOC40MTUzNSAyMC4zMTcgNC4zNjk0OVpNOC4wNTI2IDEzLjYzNThDNy4yMTkzNCAxMy42MzU4IDYuNTQ0OTYgMTIuNzc3OSA2LjU0NDk2IDExLjc0ODdDNi41NDQ5NiAxMC43MTk0IDcuMjE5MzQgOS44NjE1MiA4LjA1MjYgOS44NjE1MkM4Ljg4NTg2IDkuODYxNTIgOS41NjAyNCAxMC43MTk0IDkuNTYwMjQgMTEuNzQ4N0M5LjU2MDI0IDEyLjc3NzkgOC44ODU4NiAxMy42MzU4IDguMDUyNiAxMy42MzU4Wk0xNS45NDYzIDEzLjYzNThDMTUuMTEzIDEzLjYzNTggMTQuNDM4NiAxMi43Nzc5IDE0LjQzODYgMTEuNzQ4N0MxNC40Mzg2IDEwLjcxOTQgMTUuMTEzIDkuODYxNTIgMTUuOTQ2MyA5Ljg2MTUyQzE2Ljc3OTYgOS44NjE1MiAxNy40NTQgMTAuNzE5NCAxNy40NTQgMTEuNzQ4N0MxNy40NTQgMTIuNzc3OSAxNi43Nzk2IDEzLjYzNTggMTUuOTQ2MyAxMy42MzU4WiIgZmlsbD0iIzU4NjVGMiIvPgo8L3N2Zz4K">
+</head>
+<body>
+    <div class="container-fluid px-4 py-3">
+        <!-- Header -->
+        <div class="header text-center mb-4">
+            <h1 class="display-4 fw-bold">🤖 Discord Tools Pro</h1>
+            <p class="lead">Advanced Server Cloner & Auto Poster with Enhanced Features</p>
+        </div>
+
+        <!-- Navigation -->
+        <div class="discord-nav mb-4">
+            <ul class="nav nav-pills nav-fill" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="dashboard-tab" data-bs-toggle="pill" data-bs-target="#dashboard" type="button" role="tab" aria-controls="dashboard" aria-selected="true">
+                        <i class="bi bi-speedometer2"></i>Dashboard
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="auto-poster-tab" data-bs-toggle="pill" data-bs-target="#auto-poster" type="button" role="tab" aria-controls="auto-poster" aria-selected="false">
+                        <i class="bi bi-rocket-takeoff"></i>Auto Poster
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="server-cloner-tab" data-bs-toggle="pill" data-bs-target="#server-cloner" type="button" role="tab" aria-controls="server-cloner" aria-selected="false">
+                        <i class="bi bi-clipboard-data"></i>Server Cloner
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="settings-tab" data-bs-toggle="pill" data-bs-target="#settings" type="button" role="tab" aria-controls="settings" aria-selected="false">
+                        <i class="bi bi-gear"></i>Settings
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="logs-tab" data-bs-toggle="pill" data-bs-target="#logs" type="button" role="tab" aria-controls="logs" aria-selected="false">
+                        <i class="bi bi-journal-text"></i>Logs
+                    </button>
+                </li>
+            </ul>
+        </div>
+
+        <!-- Tab Content -->
+        <div class="tab-content" id="pills-tabContent">
+            <!-- Dashboard Tab -->
+            <div class="tab-pane fade show active" id="dashboard" role="tabpanel" aria-labelledby="dashboard-tab" tabindex="0">
+                <!-- Statistics Overview -->
+                <div class="stats-container mb-4">
+                    <div class="stat-card" id="token-stat">
+                        <i class="bi bi-key-fill stat-icon"></i>
+                        <span class="stat-number" id="token-status-text">{{ '✅' if config.token else '❌' }}</span>
+                        <p class="stat-label">Discord Token</p>
+                    </div>
+                    <div class="stat-card" id="webhook-stat">
+                        <i class="bi bi-webhook stat-icon"></i>
+                        <span class="stat-number" id="webhook-status-text">{{ '✅' if config.webhook_url else '❌' }}</span>
+                        <p class="stat-label">Webhook URL</p>
+                    </div>
+                    <div class="stat-card" id="channels-stat">
+                        <i class="bi bi-hash stat-icon"></i>
+                        <span class="stat-number" id="active-channels">{{ config.auto_post_channels|length or 0 }}</span>
+                        <p class="stat-label">Active Channels</p>
+                    </div>
+                    <div class="stat-card" id="status-stat">
+                        <i class="bi bi-activity stat-icon"></i>
+                        <span class="stat-number" id="system-status">Ready</span>
+                        <p class="stat-label">System Status</p>
+                    </div>
+                </div>
+
+                <div class="row g-4">
+                    <div class="col-lg-6">
+                        <div class="card h-100 custom-card">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0"><i class="bi bi-speedometer2"></i>System Status</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label class="form-label">Auto Poster:</label>
+                                    <div id="autopost-status" class="status-indicator status-offline">
+                                        <div class="status-dot"></div>
+                                        Stopped
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Server Cloner:</label>
+                                    <div id="cloning-status" class="status-indicator status-offline">
+                                        <div class="status-dot"></div>
+                                        Ready
+                                    </div>
+                                </div>
+                                <div class="mb-0">
+                                    <label class="form-label">Configuration:</label>
+                                    <div id="config-status" class="status-indicator status-unknown">
+                                        <div class="status-dot"></div>
+                                        <span id="config-status-text">Checking...</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-6">
+                        <div class="card h-100 custom-card">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0"><i class="bi bi-play-circle"></i>Quick Actions</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="d-grid gap-2">
+                                    <button id="toggle-autopost" class="btn btn-success" onclick="discordTools.toggleAutoPost()">
+                                        <i class="bi bi-rocket-takeoff me-2"></i>Start Auto Post
+                                    </button>
+                                    <button class="btn btn-warning" onclick="discordTools.testWebhook()">
+                                        <i class="bi bi-bug me-2"></i>Test Webhook
+                                    </button>
+                                    <button class="btn btn-primary" onclick="discordTools.loadConfig()">
+                                        <i class="bi bi-arrow-clockwise me-2"></i>Refresh Config
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Auto Poster Tab -->
+            <div class="tab-pane fade" id="auto-poster" role="tabpanel" aria-labelledby="auto-poster-tab" tabindex="0">
+                <div class="row g-4">
+                    <!-- Channel Management -->
+                    <div class="col-lg-6">
+                        <div class="card custom-card">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0"><i class="bi bi-plus-circle me-2"></i>Add New Channel</h5>
+                            </div>
+                            <div class="card-body">
+                                <form id="channel-form">
+                                    <div class="mb-3">
+                                        <label for="channel-id" class="form-label">Channel ID:</label>
+                                        <input type="text" id="channel-id" class="form-control" placeholder="123456789012345678" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="channel-message" class="form-label">Message:</label>
+                                        <textarea id="channel-message" class="form-control" rows="3" placeholder="Your message here..." required></textarea>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Interval:</label>
+                                        <div class="row g-2">
+                                            <div class="col">
+                                                <input type="number" id="interval-hours" class="form-control" placeholder="Hours" min="0">
+                                            </div>
+                                            <div class="col">
+                                                <input type="number" id="interval-minutes" class="form-control" placeholder="Minutes" min="0">
+                                            </div>
+                                            <div class="col">
+                                                <input type="number" id="interval-seconds" class="form-control" placeholder="Seconds" min="1">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <button type="button" class="btn btn-success" onclick="discordTools.addChannel()">
+                                        <i class="bi bi-plus-circle me-2"></i>Add Channel
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Webhook Settings -->
+                    <div class="col-lg-6">
+                        <div class="card custom-card">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0"><i class="bi bi-webhook me-2"></i>Webhook Configuration</h5>
+                            </div>
+                            <div class="card-body">
+                                <form>
+                                    <div class="mb-3">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" role="switch" id="webhookSwitch" name="use_webhook" {{ 'checked' if config.get('use_webhook', False) else '' }}>
+                                            <label class="form-check-label" for="webhookSwitch">Enable Webhook Logging</label>
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="webhook_url" class="form-label">Webhook URL:</label>
+                                        <input type="url" name="webhook_url" id="webhook_url" class="form-control auto-save" 
+                                               placeholder="https://discord.com/api/webhooks/..." 
+                                               value="{{ config.get('webhook_url', '') }}">
+                                    </div>
+                                    <button type="button" class="btn btn-warning" onclick="discordTools.testWebhook()">
+                                        <i class="bi bi-bug me-2"></i>Test Webhook
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Active Channels List -->
+                    <div class="col-12">
+                        <div class="card custom-card">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0"><i class="bi bi-broadcast me-2"></i>Active Channels</h5>
+                            </div>
+                            <div class="card-body">
+                                <div id="channel-list">
+                                    <!-- Channels will be loaded here by JavaScript -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Server Cloner Tab -->
+            <div class="tab-pane fade" id="server-cloner" role="tabpanel" aria-labelledby="server-cloner-tab" tabindex="0">
+                <div class="row g-4">
+                    <!-- Cloning Form -->
+                    <div class="col-lg-6">
+                        <div class="card custom-card">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0"><i class="bi bi-arrow-left-right me-2"></i>Server Cloning</h5>
+                            </div>
+                            <div class="card-body">
+                                <form id="cloning-form">
+                                    <div class="mb-3">
+                                        <label for="guild-from" class="form-label">Source Server ID:</label>
+                                        <input type="text" id="guild-from" class="form-control" 
+                                               placeholder="Server ID to copy from" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="guild-to" class="form-label">Target Server ID:</label>
+                                        <input type="text" id="guild-to" class="form-control" 
+                                               placeholder="Server ID to clone to" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" role="switch" id="cloneMessagesSwitch" name="clone_messages">
+                                            <label class="form-check-label" for="cloneMessagesSwitch">Clone Messages</label>
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" role="switch" id="clearGuildSwitch" name="clear_guild" checked>
+                                            <label class="form-check-label" for="clearGuildSwitch">Clear Target Server First</label>
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="message-limit" class="form-label">Message Limit (if cloning messages):</label>
+                                        <input type="number" id="message-limit" class="form-control" 
+                                               value="{{ config.get('message_limit', 100) }}" min="1" max="10000">
+                                    </div>
+                                    <button type="button" class="btn btn-success btn-lg w-100" onclick="discordTools.startCloning()">
+                                        <i class="bi bi-rocket-takeoff me-2"></i>Start Cloning
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Cloning Progress -->
+                    <div class="col-lg-6">
+                        <div class="card custom-card">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0"><i class="bi bi-bar-chart me-2"></i>Cloning Progress</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="progress mb-3" style="height: 20px;">
+                                    <div id="cloning-progress" class="progress-bar bg-success" role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                                </div>
+                                <div class="text-center mb-3">
+                                    <span id="progress-text" class="fs-5 fw-bold">0%</span>
+                                </div>
+                                <div class="alert alert-info">
+                                    <strong><i class="bi bi-info-circle me-2"></i>Features:</strong> Advanced mapping, state saving, webhook message cloning, 
+                                    banner support, and comprehensive permission handling.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- What Will Be Cloned Preview -->
+                    <div class="col-12">
+                        <div class="clone-preview">
+                            <div class="clone-preview-header">
+                                <h5><i class="bi bi-check-circle preview-icon"></i>What Will Be Cloned</h5>
+                            </div>
+                            <div class="clone-items">
+                                <div class="clone-item enabled" id="categories-item">
+                                    <div class="clone-item-header">
+                                        <h6 class="clone-item-title">
+                                            <i class="bi bi-folder clone-item-icon"></i>
+                                            Categories & Channels
+                                        </h6>
+                                        <span class="clone-item-status">Enabled</span>
+                                    </div>
+                                    <p class="clone-item-description">
+                                        All server categories and their channels will be recreated with proper permissions and settings.
+                                    </p>
+                                </div>
+
+                                <div class="clone-item enabled" id="roles-item">
+                                    <div class="clone-item-header">
+                                        <h6 class="clone-item-title">
+                                            <i class="bi bi-person-badge clone-item-icon"></i>
+                                            Roles & Permissions
+                                        </h6>
+                                        <span class="clone-item-status">Enabled</span>
+                                    </div>
+                                    <p class="clone-item-description">
+                                        Server roles with their colors, permissions, and hierarchy will be copied.
+                                    </p>
+                                </div>
+
+                                <div class="clone-item enabled" id="emojis-item">
+                                    <div class="clone-item-header">
+                                        <h6 class="clone-item-title">
+                                            <i class="bi bi-emoji-smile clone-item-icon"></i>
+                                            Emojis & Stickers
+                                        </h6>
+                                        <span class="clone-item-status">Enabled</span>
+                                    </div>
+                                    <p class="clone-item-description">
+                                        Custom emojis and stickers will be downloaded and uploaded to the target server.
+                                    </p>
+                                </div>
+
+                                <div class="clone-item enabled" id="server-info-item">
+                                    <div class="clone-item-header">
+                                        <h6 class="clone-item-title">
+                                            <i class="bi bi-image clone-item-icon"></i>
+                                            Server Info & Media
+                                        </h6>
+                                        <span class="clone-item-status">Enabled</span>
+                                    </div>
+                                    <p class="clone-item-description">
+                                        Server icon, banner, and basic settings will be applied to the target server.
+                                    </p>
+                                </div>
+
+                                <div class="clone-item enabled" id="webhooks-item">
+                                    <div class="clone-item-header">
+                                        <h6 class="clone-item-title">
+                                            <i class="bi bi-webhook clone-item-icon"></i>
+                                            Channel Webhooks
+                                        </h6>
+                                        <span class="clone-item-status">Enabled</span>
+                                    </div>
+                                    <p class="clone-item-description">
+                                        Webhooks will be recreated in their respective channels for message cloning.
+                                    </p>
+                                </div>
+
+                                <div class="clone-item" id="messages-item">
+                                    <div class="clone-item-header">
+                                        <h6 class="clone-item-title">
+                                            <i class="bi bi-chat-dots clone-item-icon"></i>
+                                            Messages
+                                        </h6>
+                                        <span class="clone-item-status">Optional</span>
+                                    </div>
+                                    <p class="clone-item-description">
+                                        Recent messages can be cloned using webhooks (enable in cloning options).
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Settings Tab -->
+            <div class="tab-pane fade" id="settings" role="tabpanel" aria-labelledby="settings-tab" tabindex="0">
+                <div class="row g-4">
+                    <!-- Discord Configuration -->
+                    <div class="col-lg-6">
+                        <div class="card custom-card">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0"><i class="bi bi-key me-2"></i>Discord Configuration</h5>
+                            </div>
+                            <div class="card-body">
+                                <form>
+                                    <div class="mb-3">
+                                        <label for="discord-token" class="form-label">Discord Token:</label>
+                                        <div class="token-input-group">
+                                            <input type="password" name="token" id="discord-token" class="form-control auto-save" 
+                                                   placeholder="Your Discord token" value="{{ config.get('token', '') }}">
+                                            <button type="button" class="token-toggle" onclick="toggleTokenVisibility()" aria-label="Toggle token visibility">
+                                                <i class="bi bi-eye" id="token-toggle-icon"></i>
+                                            </button>
+                                        </div>
+                                        <div class="token-status unknown" id="token-status">
+                                            <i class="bi bi-question-circle token-status-icon"></i>
+                                            <span>Token validation pending</span>
+                                        </div>
+                                        <div class="form-text">
+                                            <i class="bi bi-shield-exclamation text-warning me-1"></i>
+                                            Keep this secure! Your token grants access to your Discord account.
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Cloner Settings -->
+                    <div class="col-lg-6">
+                        <div class="card custom-card">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0"><i class="bi bi-toggles me-2"></i>Cloner Settings</h5>
+                            </div>
+                            <div class="card-body">
+                                <form>
+                                    <div class="toggle-label" onclick="toggleSetting('copyCategories')">
+                                        <div class="toggle-info">
+                                            <h6 class="toggle-title">
+                                                <i class="bi bi-folder toggle-icon"></i>
+                                                Clone Categories
+                                            </h6>
+                                            <p class="toggle-description">Copy all server categories and their structure</p>
+                                        </div>
+                                        <div class="custom-toggle">
+                                            <input type="checkbox" id="copyCategories" name="copy_categories" {{ 'checked' if config.copy_settings.get('categories', True) else '' }}>
+                                            <span class="toggle-slider"></span>
+                                        </div>
+                                    </div>
+
+                                    <div class="toggle-label" onclick="toggleSetting('copyChannels')">
+                                        <div class="toggle-info">
+                                            <h6 class="toggle-title">
+                                                <i class="bi bi-hash toggle-icon"></i>
+                                                Clone Channels
+                                            </h6>
+                                            <p class="toggle-description">Copy all text and voice channels with their settings</p>
+                                        </div>
+                                        <div class="custom-toggle">
+                                            <input type="checkbox" id="copyChannels" name="copy_channels" {{ 'checked' if config.copy_settings.get('channels', True) else '' }}>
+                                            <span class="toggle-slider"></span>
+                                        </div>
+                                    </div>
+
+                                    <div class="toggle-label" onclick="toggleSetting('copyRoles')">
+                                        <div class="toggle-info">
+                                            <h6 class="toggle-title">
+                                                <i class="bi bi-person-badge toggle-icon"></i>
+                                                Clone Roles
+                                            </h6>
+                                            <p class="toggle-description">Copy server roles with permissions and colors</p>
+                                        </div>
+                                        <div class="custom-toggle">
+                                            <input type="checkbox" id="copyRoles" name="copy_roles" {{ 'checked' if config.copy_settings.get('roles', True) else '' }}>
+                                            <span class="toggle-slider"></span>
+                                        </div>
+                                    </div>
+
+                                    <div class="toggle-label" onclick="toggleSetting('copyEmojis')">
+                                        <div class="toggle-info">
+                                            <h6 class="toggle-title">
+                                                <i class="bi bi-emoji-smile toggle-icon"></i>
+                                                Clone Emojis
+                                            </h6>
+                                            <p class="toggle-description">Copy custom emojis and stickers</p>
+                                        </div>
+                                        <div class="custom-toggle">
+                                            <input type="checkbox" id="copyEmojis" name="copy_emojis" {{ 'checked' if config.copy_settings.get('emojis', True) else '' }}>
+                                            <span class="toggle-slider"></span>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Advanced Settings -->
+                    <div class="col-lg-6">
+                        <div class="card custom-card">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0"><i class="bi bi-sliders me-2"></i>Advanced Settings</h5>
+                            </div>
+                            <div class="card-body">
+                                <form>
+                                    <div class="mb-3">
+                                        <label for="message_limit" class="form-label">Message Clone Limit:</label>
+                                        <input type="number" name="message_limit" id="message_limit" class="form-control auto-save" 
+                                               value="{{ config.get('message_limit', 100) }}" min="1" max="10000">
+                                    </div>
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" role="switch" id="clearGuildDefault" name="clear_guild" {{ 'checked' if config.get('clear_guild', True) else '' }}>
+                                        <label class="form-check-label" for="clearGuildDefault">Clear Target Guild by Default</label>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Configuration Management -->
+                    <div class="col-lg-6">
+                        <div class="card custom-card">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0"><i class="bi bi-gear me-2"></i>Configuration Management</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="d-grid gap-2">
+                                    <button class="btn btn-primary" onclick="downloadConfig()">
+                                        <i class="bi bi-download me-2"></i>Export Config
+                                    </button>
+                                    <button class="btn btn-warning" onclick="document.getElementById('config-import').click()">
+                                        <i class="bi bi-upload me-2"></i>Import Config
+                                    </button>
+                                    <input type="file" id="config-import" accept=".json" style="display: none" onchange="importConfig(event)">
+                                    <button class="btn btn-danger" onclick="resetConfig()">
+                                        <i class="bi bi-arrow-clockwise me-2"></i>Reset to Defaults
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Logs Tab -->
+            <div class="tab-pane fade" id="logs" role="tabpanel" aria-labelledby="logs-tab" tabindex="0">
+                <div class="card custom-card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0"><i class="bi bi-journal-text me-2"></i>System Logs</h5>
+                        <div class="btn-group" role="group">
+                            <button class="btn btn-outline-primary btn-sm" onclick="refreshLogs()">
+                                <i class="bi bi-arrow-clockwise me-1"></i>Refresh
+                            </button>
+                            <button class="btn btn-outline-warning btn-sm" onclick="clearLogs()">
+                                <i class="bi bi-trash me-1"></i>Clear
+                            </button>
+                            <button class="btn btn-outline-success btn-sm" onclick="downloadLogs()">
+                                <i class="bi bi-download me-1"></i>Download
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <div id="logs-container" class="code-block p-3" style="height: 400px; overflow-y: auto; background-color: #0d1117; color: #c9d1d9; font-family: 'Courier New', monospace; font-size: 14px;">
+                            <div style="color: #57f287;">[INFO] Discord Tools Pro initialized successfully</div>
+                            <div style="color: #5bc0de;">[DEBUG] Web interface loaded</div>
+                            <div style="color: #8b949e;">[SYSTEM] Ready for operations</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <script>
+        function toggleTokenVisibility() {
+            const tokenInput = document.querySelector('input[name="token"]');
+            const checkbox = document.getElementById('show-token');
+            tokenInput.type = checkbox.checked ? 'text' : 'password';
+        }
+
+        function downloadConfig() {
+            // Get current config from API to ensure we have the latest data
+            fetch('/api/config')
+                .then(response => response.json())
+                .then(configData => {
+                    const blob = new Blob([JSON.stringify(configData, null, 2)], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'discord-tools-config.json';
+                    a.click();
+                    URL.revokeObjectURL(url);
+                    discordTools.showNotification('Configuration exported successfully', 'success');
+                })
+                .catch(error => {
+                    console.error('Export error:', error);
+                    discordTools.showNotification('Error exporting configuration', 'error');
+                });
+        }
+
+        function importConfig(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const importedConfig = JSON.parse(e.target.result);
+                    // Send config to server
+                    fetch('/api/import-config', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(importedConfig)
+                    }).then(() => {
+                        discordTools.showNotification('Configuration imported successfully', 'success');
+                        location.reload();
+                    });
+                } catch (error) {
+                    discordTools.showNotification('Invalid configuration file', 'error');
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function resetConfig() {
+            if (confirm('Are you sure you want to reset all settings to defaults?')) {
+                fetch('/api/reset-config', { method: 'POST' })
+                    .then(() => {
+                        discordTools.showNotification('Configuration reset successfully', 'success');
+                        location.reload();
+                    });
+            }
+        }
+
+        function refreshLogs() {
+            fetch('/api/logs')
+                .then(response => response.json())
+                .then(logs => {
+                    const container = document.getElementById('logs-container');
+                    container.innerHTML = logs.map(log => 
+                        `<div style="color: ${getLogColor(log.level)}">[${log.level}] ${log.message}</div>`
+                    ).join('');
+                    container.scrollTop = container.scrollHeight;
+                });
+        }
+
+        function getLogColor(level) {
+            const colors = {
+                'INFO': 'var(--success-color)',
+                'DEBUG': 'var(--info-color)',
+                'WARNING': 'var(--warning-color)',
+                'ERROR': 'var(--danger-color)',
+                'SYSTEM': 'var(--text-secondary)'
+            };
+            return colors[level] || 'var(--text-primary)';
+        }
+
+        function clearLogs() {
+            if (confirm('Clear all logs?')) {
+                document.getElementById('logs-container').innerHTML = '';
+                discordTools.showNotification('Logs cleared', 'success');
+            }
+        }
+
+        function downloadLogs() {
+            const logs = document.getElementById('logs-container').innerText;
+            const blob = new Blob([logs], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'discord-tools-logs.txt';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // Initialize tab from URL hash
+        window.addEventListener('load', () => {
+            const hash = window.location.hash.substr(1);
+            if (hash && document.getElementById(hash)) {
+                discordTools.switchTab(hash);
+            }
+        });
+    </script>
+
+    <!-- Bootstrap 5 JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

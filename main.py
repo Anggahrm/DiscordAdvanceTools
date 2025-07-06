@@ -1,137 +1,44 @@
-try:
-  import subprocess
-  import os
-  import sys
-  import json
-  import time
-  import discord
-  from utils.cloner import Cloner
-  from utils.panel import Panel, Panel_Run
-  from discord import Client, Intents
-  from rich.prompt import Prompt, Confirm
-  from time import sleep
-  if discord.__version__ != "1.7.3":
-    print("Updating Discord.py...")
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "-r", "requirements.txt"])
-    print("Discord.py Updated Successfully!")
-    print("Restarting...")
-    os.execl(sys.executable, sys.executable, *sys.argv)
-except Exception:
-  print("Installing Requirements...")
-  subprocess.check_call(
-    [sys.executable, "-m", "pip", "install", "-r", "requirements.txt"])
-  print("Requirements Installed Successfully!")
-  print("Restarting...")
-  os.execl(sys.executable, sys.executable, *sys.argv)
+#!/usr/bin/env python3
+"""
+Discord Tools Pro - Modern Web Interface
+Entry point for the Discord Server Cloner & Auto-Poster application.
+"""
 
-try:
-  client = Client(intents=Intents.all())
-except Exception as e:
-  print("> Failed to create Discord client: ", e)
+import os
+import sys
 
-with open("./utils/config.json", "r") as json_file:
-  data = json.load(json_file)
+# Add the src directory to Python path for imports
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 
-os.system('cls' if os.name == 'nt' else 'clear')
-
-
-def clear(option=False):
-  sleep(1)
-  os.system('cls' if os.name == 'nt' else 'clear')
-  if option:
-    user = client.user
-    guild = client.get_guild(int(INPUT_GUILD_ID))
-    Panel_Run(guild, user)
-  else:
-    Panel()
-
-
-async def clone_server():
-    start_time = time.time()
-    guild_from = client.get_guild(int(INPUT_GUILD_ID))
-    print(" ")
-    guild_to = client.get_guild(int(GUILD))
-    
-    # Edit the server name and icon
-    await Cloner.guild_create(guild_to, guild_from)
-    
-    await Cloner.channels_delete(guild_to)
-    if data["copy_settings"]["roles"]:
-        await Cloner.roles_create(guild_to, guild_from)
-    if data["copy_settings"]["categories"]:
-        await Cloner.categories_create(guild_to, guild_from)
-    if data["copy_settings"]["channels"]:
-        await Cloner.channels_create(guild_to, guild_from)
-    if data["copy_settings"]["emojis"]:
-        await Cloner.emojis_create(guild_to, guild_from)
-    print("\n> Done Cloning Server in " +
-          str(round(time.time() - start_time, 2)) + " seconds")
-
-
-@client.event
-async def on_ready():
-  clear(True)
-  await clone_server()
-
-
-class ClonerBot:
-
-  def __init__(self):
-    self.INPUT_GUILD_ID = None
-    with open("./utils/config.json", "r") as json_file:
-      self.data = json.load(json_file)
-
-  def clear(self):
-    sleep(1)
-    os.system('cls' if os.name == 'nt' else 'clear')
-    Panel()
-
-  def edit_config(self, option, value, copy_settings=False):
-    if copy_settings:
-      self.data["copy_settings"][option] = value
-    else:
-      self.data[option] = value
-    with open("./utils/config.json", "w") as json_file:
-      json.dump(self.data, json_file, indent=4)
-
-  def edit_settings_function(self):
-    print("\nDo you want to copy:")
-    categories = Confirm.ask("> Categories?")
-    channels = Confirm.ask("> Channels?")
-    roles = Confirm.ask("> Roles?")
-    emojis = Confirm.ask("> Emojis?")
-    for option in ["categories", "channels", "roles", "emojis"]:
-      self.edit_config(option, locals()[option], copy_settings=True)
-
-  def main(self):
-    self.clear()
-    if self.data["token"] == False:
-      self.TOKEN = Prompt.ask("\n> Enter your Token")
-      sleep(0.5)
-    else:
-      print("> Token Found")
-    self.clear()
-    edit_settings = Confirm.ask("\n> Do you want to edit the settings?")
-    self.clear()
-    if edit_settings:
-      self.edit_settings_function()
-    self.clear()
-
-    self.GUILD = Prompt.ask('\n> Enter the Server ID you want to edit (Create a Server Manully)')
-    sleep(0.5)
-
-    self.INPUT_GUILD_ID = Prompt.ask("\n> Enter the Server ID you want to copy from")
-    sleep(0.5)
-
-    return self.INPUT_GUILD_ID, self.TOKEN, self.GUILD
-
+def main():
+    """Main entry point for the application."""
+    try:
+        # Import and run the integrated main application
+        from integrated_main import main as app_main
+        app_main()
+    except ImportError as e:
+        print(f"❌ Import error: {e}")
+        print("📦 Installing required dependencies...")
+        
+        # Try to install requirements
+        import subprocess
+        try:
+            subprocess.check_call([sys.executable, "-m", "pip", "install", "-r", "requirements.txt"])
+            print("✅ Dependencies installed successfully. Please restart the application.")
+        except subprocess.CalledProcessError:
+            print("❌ Failed to install dependencies automatically.")
+            print("Please run: pip install -r requirements.txt")
+        except FileNotFoundError:
+            print("❌ requirements.txt not found.")
+            print("Please ensure all required packages are installed:")
+            print("  - discord.py")
+            print("  - flask")
+            print("  - requests")
+        
+        sys.exit(1)
+    except Exception as e:
+        print(f"❌ An error occurred: {e}")
+        sys.exit(1)
 
 if __name__ == "__main__":
-  INPUT_GUILD_ID, TOKEN, GUILD = ClonerBot().main()
-  try:
-    client.run(TOKEN, bot=False)
-    clear()
-  except Exception as e:
-    print(e)
-    print("> Invalid Token")
-    data["token"] = False
+    main()
