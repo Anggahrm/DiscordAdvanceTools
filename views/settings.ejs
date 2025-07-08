@@ -1,0 +1,443 @@
+<div class="row">
+    <div class="col-lg-8 mx-auto">
+        <div class="card shadow">
+            <div class="card-header bg-warning text-dark">
+                <h4 class="card-title mb-0">
+                    <i class="fas fa-cog me-2"></i>Settings
+                </h4>
+            </div>
+            <div class="card-body">
+                <form id="settingsForm">
+                    <!-- Discord Configuration -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fab fa-discord me-2"></i>Discord Configuration
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label for="discordToken" class="form-label">
+                                    <i class="fas fa-key me-1"></i>Discord Token
+                                </label>
+                                <div class="input-group">
+                                    <input type="password" class="form-control" id="discordToken" name="discord_token" 
+                                           placeholder="Enter your Discord token" value="<%= config.discord_token || '' %>">
+                                    <button class="btn btn-outline-secondary" type="button" id="toggleToken">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    <button class="btn btn-primary" type="button" id="testToken">
+                                        <i class="fas fa-vial me-1"></i>Test
+                                    </button>
+                                </div>
+                                <div class="form-text">Your Discord user token or bot token for API access</div>
+                                <div id="tokenStatus" class="mt-2"></div>
+                            </div>
+                            
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>
+                                <strong>How to get your Discord token:</strong>
+                                <ol class="mb-0 mt-2">
+                                    <li>Open Discord in your browser</li>
+                                    <li>Press F12 to open Developer Tools</li>
+                                    <li>Go to Network tab</li>
+                                    <li>Refresh the page (F5)</li>
+                                    <li>Look for any request and check the Authorization header</li>
+                                </ol>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Webhook Configuration -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-webhook me-2"></i>Webhook Configuration
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="checkbox" id="useWebhook" name="use_webhook" 
+                                       <%= config.use_webhook ? 'checked' : '' %>>
+                                <label class="form-check-label" for="useWebhook">
+                                    <i class="fas fa-toggle-on me-1"></i>Enable Webhook Logging
+                                </label>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="webhookUrl" class="form-label">
+                                    <i class="fas fa-link me-1"></i>Webhook URL
+                                </label>
+                                <div class="input-group">
+                                    <input type="url" class="form-control" id="webhookUrl" name="webhook_url" 
+                                           placeholder="https://discord.com/api/webhooks/..." 
+                                           value="<%= config.webhook_url || '' %>">
+                                    <button class="btn btn-primary" type="button" id="testWebhook">
+                                        <i class="fas fa-vial me-1"></i>Test
+                                    </button>
+                                </div>
+                                <div class="form-text">Discord webhook URL for logging and notifications</div>
+                                <div id="webhookStatus" class="mt-2"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- General Settings -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-sliders-h me-2"></i>General Settings
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="defaultDelay" class="form-label">
+                                            <i class="fas fa-clock me-1"></i>Default API Delay (ms)
+                                        </label>
+                                        <input type="number" class="form-control" id="defaultDelay" name="default_delay" 
+                                               value="<%= config.default_delay || 1000 %>" min="100">
+                                        <div class="form-text">Default delay between API requests</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="maxRetries" class="form-label">
+                                            <i class="fas fa-redo me-1"></i>Max Retries
+                                        </label>
+                                        <input type="number" class="form-control" id="maxRetries" name="max_retries" 
+                                               value="<%= config.max_retries || 3 %>" min="1" max="10">
+                                        <div class="form-text">Maximum retry attempts for failed requests</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="checkbox" id="enableLogs" name="enable_logs" 
+                                       <%= config.enable_logs !== false ? 'checked' : '' %>>
+                                <label class="form-check-label" for="enableLogs">
+                                    <i class="fas fa-file-alt me-1"></i>Enable Detailed Logging
+                                </label>
+                            </div>
+                            
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="darkMode" name="dark_mode" 
+                                       <%= config.dark_mode ? 'checked' : '' %>>
+                                <label class="form-check-label" for="darkMode">
+                                    <i class="fas fa-moon me-1"></i>Dark Mode
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Auto Post Settings -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-robot me-2"></i>Auto Post Settings
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="minInterval" class="form-label">
+                                            <i class="fas fa-clock me-1"></i>Minimum Interval (minutes)
+                                        </label>
+                                        <input type="number" class="form-control" id="minInterval" name="min_interval" 
+                                               value="<%= config.min_interval || 1 %>" min="1">
+                                        <div class="form-text">Minimum time between auto posts</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="maxMessages" class="form-label">
+                                            <i class="fas fa-list me-1"></i>Max Random Messages
+                                        </label>
+                                        <input type="number" class="form-control" id="maxMessages" name="max_messages" 
+                                               value="<%= config.max_messages || 10 %>" min="1">
+                                        <div class="form-text">Maximum number of random messages to store</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <button type="button" class="btn btn-secondary" id="resetBtn">
+                            <i class="fas fa-undo me-2"></i>Reset to Defaults
+                        </button>
+                        <button type="button" class="btn btn-info" id="exportBtn">
+                            <i class="fas fa-download me-2"></i>Export Config
+                        </button>
+                        <button type="button" class="btn btn-warning" id="importBtn">
+                            <i class="fas fa-upload me-2"></i>Import Config
+                        </button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-2"></i>Save Settings
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- System Info Card -->
+        <div class="card shadow mt-4">
+            <div class="card-header bg-info text-white">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-info-circle me-2"></i>System Information
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <strong>Version:</strong> 1.0.0<br>
+                        <strong>Node.js:</strong> <span id="nodeVersion">Loading...</span><br>
+                        <strong>Uptime:</strong> <span id="uptime">Loading...</span>
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Memory Usage:</strong> <span id="memoryUsage">Loading...</span><br>
+                        <strong>Active Connections:</strong> <span id="activeConnections">Loading...</span><br>
+                        <strong>Last Config Save:</strong> <span id="lastSave">Never</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Hidden file input for import -->
+<input type="file" id="importFile" accept=".json" style="display: none;">
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const socket = io();
+    const settingsForm = document.getElementById('settingsForm');
+    
+    // Toggle token visibility
+    document.getElementById('toggleToken').addEventListener('click', function() {
+        const tokenInput = document.getElementById('discordToken');
+        const icon = this.querySelector('i');
+        
+        if (tokenInput.type === 'password') {
+            tokenInput.type = 'text';
+            icon.className = 'fas fa-eye-slash';
+        } else {
+            tokenInput.type = 'password';
+            icon.className = 'fas fa-eye';
+        }
+    });
+
+    // Test Discord token
+    document.getElementById('testToken').addEventListener('click', async function() {
+        const token = document.getElementById('discordToken').value;
+        const statusDiv = document.getElementById('tokenStatus');
+        
+        if (!token) {
+            showStatus(statusDiv, 'Please enter a token first', 'warning');
+            return;
+        }
+        
+        this.disabled = true;
+        this.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Testing...';
+        
+        try {
+            const response = await fetch('/test-token', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token })
+            });
+            
+            const result = await response.json();
+            showStatus(statusDiv, result.message, result.valid ? 'success' : 'danger');
+        } catch (error) {
+            showStatus(statusDiv, 'Error testing token', 'danger');
+        } finally {
+            this.disabled = false;
+            this.innerHTML = '<i class="fas fa-vial me-1"></i>Test';
+        }
+    });
+
+    // Test webhook
+    document.getElementById('testWebhook').addEventListener('click', async function() {
+        const webhookUrl = document.getElementById('webhookUrl').value;
+        const statusDiv = document.getElementById('webhookStatus');
+        
+        if (!webhookUrl) {
+            showStatus(statusDiv, 'Please enter a webhook URL first', 'warning');
+            return;
+        }
+        
+        this.disabled = true;
+        this.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Testing...';
+        
+        try {
+            const response = await fetch('/test-webhook', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ webhookUrl })
+            });
+            
+            const result = await response.json();
+            showStatus(statusDiv, result.message, result.valid ? 'success' : 'danger');
+        } catch (error) {
+            showStatus(statusDiv, 'Error testing webhook', 'danger');
+        } finally {
+            this.disabled = false;
+            this.innerHTML = '<i class="fas fa-vial me-1"></i>Test';
+        }
+    });
+
+    // Save settings
+    settingsForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(settingsForm);
+        const settings = {};
+        
+        for (let [key, value] of formData.entries()) {
+            if (value === 'on') {
+                settings[key] = true;
+            } else if (!isNaN(value) && value !== '') {
+                settings[key] = parseFloat(value);
+            } else {
+                settings[key] = value;
+            }
+        }
+        
+        // Handle unchecked checkboxes
+        const checkboxes = ['use_webhook', 'enable_logs', 'dark_mode'];
+        checkboxes.forEach(checkbox => {
+            if (!formData.has(checkbox)) {
+                settings[checkbox] = false;
+            }
+        });
+        
+        try {
+            const response = await fetch('/settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(settings)
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                showAlert('Settings saved successfully!', 'success');
+                document.getElementById('lastSave').textContent = new Date().toLocaleString();
+            } else {
+                showAlert('Error saving settings: ' + result.error, 'danger');
+            }
+        } catch (error) {
+            showAlert('Error saving settings: ' + error.message, 'danger');
+        }
+    });
+
+    // Reset settings
+    document.getElementById('resetBtn').addEventListener('click', function() {
+        if (confirm('Are you sure you want to reset all settings to defaults?')) {
+            // Reset form to default values
+            settingsForm.reset();
+            showAlert('Settings reset to defaults. Don\'t forget to save!', 'info');
+        }
+    });
+
+    // Export config
+    document.getElementById('exportBtn').addEventListener('click', async function() {
+        try {
+            const response = await fetch('/settings');
+            const config = await response.json();
+            
+            const dataStr = JSON.stringify(config, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(dataBlob);
+            link.download = 'discord-tools-config.json';
+            link.click();
+            
+            showAlert('Configuration exported successfully!', 'success');
+        } catch (error) {
+            showAlert('Error exporting config: ' + error.message, 'danger');
+        }
+    });
+
+    // Import config
+    document.getElementById('importBtn').addEventListener('click', function() {
+        document.getElementById('importFile').click();
+    });
+
+    document.getElementById('importFile').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const config = JSON.parse(e.target.result);
+                    
+                    // Fill form with imported config
+                    Object.keys(config).forEach(key => {
+                        const input = document.querySelector(`[name="${key}"]`);
+                        if (input) {
+                            if (input.type === 'checkbox') {
+                                input.checked = config[key];
+                            } else {
+                                input.value = config[key];
+                            }
+                        }
+                    });
+                    
+                    showAlert('Configuration imported successfully! Don\'t forget to save!', 'success');
+                } catch (error) {
+                    showAlert('Error importing config: Invalid JSON file', 'danger');
+                }
+            };
+            reader.readAsText(file);
+        }
+    });
+
+    function showStatus(element, message, type) {
+        const alertClass = `alert-${type}`;
+        element.innerHTML = `<div class="alert ${alertClass} mb-0">${message}</div>`;
+        
+        setTimeout(() => {
+            element.innerHTML = '';
+        }, 5000);
+    }
+
+    function showAlert(message, type) {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+        alertDiv.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        
+        const container = document.querySelector('main .container');
+        container.insertBefore(alertDiv, container.firstChild);
+    }
+
+    // Load system info
+    async function loadSystemInfo() {
+        try {
+            const response = await fetch('/system-info');
+            const info = await response.json();
+            
+            document.getElementById('nodeVersion').textContent = info.nodeVersion;
+            document.getElementById('uptime').textContent = info.uptime;
+            document.getElementById('memoryUsage').textContent = info.memoryUsage;
+            document.getElementById('activeConnections').textContent = info.activeConnections;
+        } catch (error) {
+            console.error('Error loading system info:', error);
+        }
+    }
+
+    // Load system info on page load
+    loadSystemInfo();
+    
+    // Update system info every 30 seconds
+    setInterval(loadSystemInfo, 30000);
+});
+</script>

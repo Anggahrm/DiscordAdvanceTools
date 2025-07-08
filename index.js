@@ -1,14 +1,20 @@
 const express = require('express');
-const { Client, GatewayIntentBits, PermissionsBitField } = require('discord.js');
 const http = require('http');
 const socketIo = require('socket.io');
 const path = require('path');
-const PythonClonerWrapper = require('./python_cloner/wrapper');
+const axios = require('axios');
+const JSCloner = require('./cloner');
+const AutoPoster = require('./autopost');
+const ConfigManager = require('./config_manager');
 require('dotenv').config();
 
 const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
+
+// Global instances
+const autoPoster = new AutoPoster();
+const configManager = new ConfigManager();
 
 // Middleware
 app.use(express.json());
@@ -20,182 +26,498 @@ app.set('views', path.join(__dirname, 'views'));
 // Global variables
 const activeCloners = new Map();
 
-// Routes
-app.get('/', (req, res) => {
-    res.render('index', { 
-        title: 'Discord Server Cloner',
-        error: null,
-        success: null
+// Helper function to send message via webhook
+const sendMessage = async (webhookUrl, message, enableMentions = false) => {
+    try {
+        const payload = {
+            content: enableMentions ? `@everyone ${message}` : message
+        };
+        
+        await axios.post(webhookUrl, payload);
+        return true;
+    } catch (error) {
+        throw new Error(`Failed to send message: ${error.message}`);
+    }
+};
+
+// ==================== UTILITY FUNCTIONS ====================
+
+// Generic error handler for routes
+const handleRouteError = (res, error, operation = 'operation') => {
+    console.error(`${operation} error:`, error);
+    res.status(500).json({ error: error.message });
+};
+
+// Generic success response
+const sendSuccess = (res, data = {}, message = 'Success') => {
+    res.json({ success: true, message, ...data });
+};
+
+// Generic error response
+const sendError = (res, message, status = 400) => {
+    res.status(status).json({ error: message });
+};
+
+// Config validation middleware
+const validateConfig = (requiredFields = []) => {
+    return (req, res, next) => {
+        const config = configManager.getConfig();
+        
+        for (const field of requiredFields) {
+            if (!config[field]) {
+                return sendError(res, `${field.replace('_', ' ')} not configured. Please configure it in Settings.`);
+            }
+        }
+        
+        req.config = config;
+        next();
+    };
+};
+
+// Test Discord API connection
+const testDiscordToken = async (token) => {
+    try {
+        // Try as user token first (no "Bot" prefix)
+        const response = await axios.get('https://discord.com/api/v9/users/@me', {
+            headers: { 
+                'Authorization': token,
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'X-Super-Properties': 'eyJvcyI6IldpbmRvd3MiLCJicm93c2VyIjoiQ2hyb21lIiwiZGV2aWNlIjoiIiwic3lzdGVtX2xvY2FsZSI6ImVuLVVTIiwiYnJvd3Nlcl91c2VyX2FnZW50IjoiTW96aWxsYS81LjAgKFdpbmRvd3MgTlQgMTAuMDsgV2luNjQ7IHg2NCkgQXBwbGVXZWJLaXQvNTM3LjM2IChLSFRNTCwgbGlrZSBHZWNrbykgQ2hyb21lLzEyMC4wLjAuMCBTYWZhcmkvNTM3LjM2IiwiYnJvd3Nlcl92ZXJzaW9uIjoiMTIwLjAuMC4wIiwib3NfdmVyc2lvbiI6IjEwIiwicmVmZXJyZXIiOiIiLCJyZWZlcnJpbmdfZG9tYWluIjoiIiwicmVmZXJyZXJfY3VycmVudCI6IiIsInJlZmVycmluZ19kb21haW5fY3VycmVudCI6IiIsInJlbGVhc2VfY2hhbm5lbCI6InN0YWJsZSIsImNsaWVudF9idWlsZF9udW1iZXIiOjI1MzUxNiwiY2xpZW50X2V2ZW50X3NvdXJjZSI6bnVsbH0='
+            }
+        });
+        return { valid: true, message: `Connected as ${response.data.username} (User Token)` };
+    } catch (userError) {
+        // If user token fails, try as bot token
+        try {
+            const response = await axios.get('https://discord.com/api/v10/users/@me', {
+                headers: { 'Authorization': `Bot ${token}` }
+            });
+            return { valid: true, message: `Connected as ${response.data.username} (Bot Token)` };
+        } catch (botError) {
+            return { valid: false, message: 'Invalid token (tried both user and bot token formats)' };
+        }
+    }
+};
+
+// Test webhook connection
+const testWebhook = async (webhookUrl, message = 'Test message from Discord Advanced Tools') => {
+    try {
+        await axios.post(webhookUrl, { content: message });
+        return { valid: true, message: 'Webhook test successful' };
+    } catch (error) {
+        return { valid: false, message: 'Webhook test failed' };
+    }
+};
+
+// Helper function to render with layout
+const renderWithLayout = (res, viewName, options = {}) => {
+    const config = configManager.getConfig();
+    
+    res.render(viewName, { ...options, config }, (err, contentHtml) => {
+        if (err) {
+            console.error('Error rendering content:', err);
+            return res.status(500).send('Error rendering page');
+        }
+        
+        res.render('layout', {
+            title: options.title || 'Discord Advanced Tools',
+            headerTitle: 'Discord Advanced Tools',
+            headerSubtitle: 'Advanced Discord automation and management tools',
+            currentPage: options.currentPage || 'cloner',
+            config,
+            error: options.error || null,
+            success: options.success || null,
+            content: contentHtml
+        });
+    });
+};
+
+// ==================== MAIN ROUTES ====================
+
+const pages = [
+    { route: '/', view: 'cloner', title: 'Discord Server Cloner - Discord Advanced Tools', page: 'cloner' },
+    { route: '/cloner', view: 'cloner', title: 'Discord Server Cloner - Discord Advanced Tools', page: 'cloner' },
+    { route: '/autopost', view: 'autopost', title: 'Discord Auto Poster - Discord Advanced Tools', page: 'autopost' },
+    { route: '/settings', view: 'settings', title: 'Settings - Discord Advanced Tools', page: 'settings' }
+];
+
+pages.forEach(({ route, view, title, page }) => {
+    app.get(route, (req, res) => {
+        renderWithLayout(res, view, { title, currentPage: page });
     });
 });
 
-app.post('/clone', async (req, res) => {
-    const { token, sourceServerId, targetServerId, options } = req.body;
-    
-    if (!token || !sourceServerId || !targetServerId) {
-        return res.render('index', {
-            title: 'Discord Server Cloner',
-            error: 'All fields are required',
-            success: null
-        });
-    }
+// ==================== CLONER ROUTES ====================
 
-    if (sourceServerId === targetServerId) {
-        return res.render('index', {
-            title: 'Discord Server Cloner',
-            error: 'Source and target servers cannot be the same',
-            success: null
-        });
-    }
-
-    const clonerId = Date.now().toString();
-    
+app.post('/clone', validateConfig(['discord_token']), async (req, res) => {
     try {
-        // Detect token type
-        const cleanToken = token.trim();
-        const isUserToken = !cleanToken.startsWith('Bot ') && 
-                           !cleanToken.startsWith('Bearer ') &&
-                           cleanToken.split('.').length === 3 &&
-                           cleanToken.length > 50;
+        const { sourceGuildId, targetGuildId, options = {} } = req.body;
         
-        if (isUserToken) {
-            // Use Python cloner for user tokens
-            const pythonCloner = new PythonClonerWrapper(io, clonerId);
-            activeCloners.set(clonerId, pythonCloner);
-            
-            io.emit('cloning-log', { 
-                clonerId, 
-                message: '⚠️ Using USER TOKEN - This violates Discord ToS and may result in account ban!',
-                level: 'WARNING'
-            });
-            
-            io.emit('cloning-log', { 
-                clonerId, 
-                message: '🐍 Using Python backend for user token support...',
-                level: 'INFO'
-            });
-            
-            pythonCloner.startCloning(cleanToken, sourceServerId, targetServerId, options)
-                .then(success => {
-                    activeCloners.delete(clonerId);
-                })
-                .catch(error => {
-                    io.emit('cloning-error', { clonerId, message: error.message });
-                    activeCloners.delete(clonerId);
-                });
-        } else {
-            // Use Discord.js for bot tokens
-            const cloner = new ServerCloner(token, sourceServerId, targetServerId, options, io, clonerId);
-            activeCloners.set(clonerId, cloner);
-            
-            io.emit('cloning-log', { 
-                clonerId, 
-                message: '🤖 Using BOT TOKEN - Recommended and ToS compliant',
-                level: 'INFO'
-            });
-            
-            io.emit('cloning-log', { 
-                clonerId, 
-                message: '⚡ Using Node.js/Discord.js backend...',
-                level: 'INFO'
-            });
-            
-            cloner.startCloning().then(success => {
-                if (success) {
-                    io.emit('cloning-complete', { clonerId, success: true });
-                } else {
-                    io.emit('cloning-complete', { clonerId, success: false });
-                }
-                activeCloners.delete(clonerId);
-            }).catch(error => {
-                io.emit('cloning-error', { clonerId, message: error.message });
-                activeCloners.delete(clonerId);
-            });
+        if (!sourceGuildId || !targetGuildId) {
+            return sendError(res, 'Source and target server IDs are required');
         }
 
-        res.json({ success: true, clonerId, tokenType: isUserToken ? 'user' : 'bot' });
+        if (sourceGuildId === targetGuildId) {
+            return sendError(res, 'Source and target servers cannot be the same');
+        }
+
+        const clonerId = Date.now().toString();
+        
+        // Parse boolean options from the options object
+        const booleanFields = [
+            'cloneRoles', 'cloneChannels', 'cloneCategories', 'clonePermissions',
+            'cloneEmojis', 'cloneBans', 'cloneVoiceSettings', 'cloneServerSettings',
+            'cloneServerInfo', 'cloneWebhooks', 'cloneMessages', 'preserveRoleHierarchy', 
+            'skipBotChannels', 'deleteExisting'
+        ];
+        
+        const cloneOptions = {};
+        booleanFields.forEach(field => {
+            cloneOptions[field] = options[field] === true || options[field] === 'true';
+        });
+        
+        // Parse numeric options
+        cloneOptions.maxConcurrentOps = parseInt(options.maxConcurrentOps) || 5;
+        cloneOptions.delayBetweenOps = parseInt(options.delayBetweenOps || options.delay) || 500;
+        cloneOptions.messageLimit = parseInt(options.maxMessages) || 50;
+        
+        // Ensure at least one option is enabled
+        const hasAnyOption = booleanFields.some(field => cloneOptions[field]);
+        if (!hasAnyOption) {
+            // Set default options if none are enabled
+            cloneOptions.cloneRoles = true;
+            cloneOptions.cloneChannels = true;
+            cloneOptions.cloneCategories = true;
+            cloneOptions.cloneServerInfo = true;
+        }
+        
+        console.log('Processed clone options:', cloneOptions);
+        
+        // Save options and start cloning
+        await configManager.updateConfig({ cloner_options: cloneOptions });
+        
+        const jsCloner = new JSCloner(req.config.discord_token, sourceGuildId, targetGuildId, cloneOptions, io, clonerId);
+        activeCloners.set(clonerId, jsCloner);
+        
+        // Start cloning asynchronously
+        jsCloner.startCloning()
+            .then(success => {
+                io.emit('cloneComplete', { clonerId, success });
+                activeCloners.delete(clonerId);
+            })
+            .catch(error => {
+                io.emit('cloneError', { clonerId, error: error.message });
+                activeCloners.delete(clonerId);
+            });
+
+        sendSuccess(res, { clonerId }, 'Cloning initiated successfully');
     } catch (error) {
-        res.json({ success: false, error: error.message });
+        handleRouteError(res, error, 'Clone');
     }
 });
 
-app.post('/verify-token', async (req, res) => {
-    const { token } = req.body;
-    
-    if (!token) {
-        return res.json({ success: false, error: 'Token is required' });
-    }
-
+app.get('/api/cloning/status', (req, res) => {
     try {
-        const cleanToken = token.trim();
-        const isUserToken = !cleanToken.startsWith('Bot ') && 
-                           !cleanToken.startsWith('Bearer ') &&
-                           cleanToken.split('.').length === 3 &&
-                           cleanToken.length > 50;
+        const activeClonersArray = Array.from(activeCloners.entries()).map(([clonerId, cloner]) => ({
+            clonerId,
+            stats: cloner.stats,
+            stopped: cloner.stopped,
+            startTime: cloner.stats.startTime
+        }));
         
-        if (isUserToken) {
-            // Use Python cloner for verification
-            const pythonCloner = new PythonClonerWrapper(io, 'verify');
-            const result = await pythonCloner.verifyToken(cleanToken);
-            
-            if (result.success) {
-                return res.json({
-                    success: true,
-                    tokenType: 'user',
-                    username: result.username,
-                    guilds: result.guilds,
-                    warning: 'User token detected - This violates Discord ToS!'
-                });
-            } else {
-                return res.json({ success: false, error: result.error });
-            }
-        } else {
-            // Use Discord.js for bot token verification
-            const client = new Client({
-                intents: [
-                    GatewayIntentBits.Guilds,
-                    GatewayIntentBits.GuildMessages,
-                    GatewayIntentBits.GuildMembers,
-                    GatewayIntentBits.MessageContent
-                ]
-            });
-
-            try {
-                await client.login(cleanToken);
-                const user = client.user;
-                const guilds = client.guilds.cache.map(guild => ({
-                    id: guild.id,
-                    name: guild.name,
-                    icon: guild.iconURL()
-                }));
-                
-                await client.destroy();
-                
-                return res.json({
-                    success: true,
-                    tokenType: 'bot',
-                    username: user.username,
-                    guilds: guilds
-                });
-            } catch (error) {
-                await client.destroy().catch(() => {});
-                if (error.code === 'TokenInvalid') {
-                    return res.json({ success: false, error: 'Invalid bot token' });
-                }
-                return res.json({ success: false, error: error.message });
-            }
-        }
+        res.json({
+            activeCloners: activeClonersArray,
+            hasActiveCloners: activeClonersArray.length > 0
+        });
     } catch (error) {
-        return res.json({ success: false, error: error.message });
+        handleRouteError(res, error, 'Get cloning status');
     }
 });
 
-// Socket.IO connection handling
+// ==================== AUTO POSTER ROUTES ====================
+
+app.post('/autopost/start', validateConfig(['discord_token', 'webhook_url']), async (req, res) => {
+    try {
+        const { channelId, channelIds, message, interval, options } = req.body;
+        
+        // Support both single channelId and multiple channelIds
+        const targetChannels = channelIds && Array.isArray(channelIds) ? channelIds : 
+                              (channelIds ? [channelIds] : 
+                              (channelId ? [channelId] : []));
+        
+        if (targetChannels.length === 0 || !message) {
+            return sendError(res, 'At least one channel ID and message are required');
+        }
+
+        const intervalMinutes = parseInt(interval) || 60;
+        if (intervalMinutes < 1) {
+            return sendError(res, 'Interval must be at least 1 minute');
+        }
+
+        // Update autoPoster configuration
+        const autopostConfig = {
+            token: req.config.discord_token,
+            webhookUrl: req.config.webhook_url,
+            useWebhook: true,
+            channels: targetChannels.map(channelId => ({
+                id: channelId,
+                message: message,
+                interval: intervalMinutes * 60 // Convert to seconds
+            }))
+        };
+
+        await autoPoster.updateConfig(autopostConfig);
+        
+        // Start the autoPoster
+        autoPoster.start();
+
+        // Emit initial status
+        io.emit('autopostMessage', {
+            message: 'Auto posting started successfully',
+            timestamp: new Date(),
+            status: 'started'
+        });
+
+        sendSuccess(res, { 
+            channelIds: targetChannels,
+            interval: intervalMinutes,
+            message: message
+        }, 'Auto posting started');
+    } catch (error) {
+        handleRouteError(res, error, 'Auto post start');
+    }
+});
+
+app.post('/autopost/stop', (req, res) => {
+    try {
+        // Stop the autoPoster
+        autoPoster.stop();
+        
+        io.emit('autopostStopped', { message: 'Auto posting stopped' });
+        sendSuccess(res, {}, 'Auto posting stopped successfully');
+    } catch (error) {
+        handleRouteError(res, error, 'Stop auto post');
+    }
+});
+
+app.post('/autopost/test', validateConfig(['webhook_url']), async (req, res) => {
+    try {
+        const { message, enableMentions } = req.body;
+        
+        if (!message) {
+            return sendError(res, 'Message is required');
+        }
+
+        await sendMessage(req.config.webhook_url, message, enableMentions === 'true');
+        sendSuccess(res, {}, 'Test message sent successfully');
+    } catch (error) {
+        handleRouteError(res, error, 'Test message');
+    }
+});
+
+app.get('/autopost/status', (req, res) => {
+    const status = autoPoster.getStatus();
+    const config = autoPoster.getConfig();
+    
+    res.json({
+        isRunning: status.isRunning,
+        activeChannels: status.activeChannels,
+        runningTimers: status.runningTimers,
+        channels: config.channels || [],
+        nextPost: status.isRunning && config.channels && config.channels.length > 0 ? 
+                  Date.now() + (config.channels[0].interval * 1000) : null
+    });
+});
+
+// ==================== SETTINGS ROUTES ====================
+
+app.get('/api/config', (req, res) => {
+    try {
+        res.json(configManager.getConfig());
+    } catch (error) {
+        handleRouteError(res, error, 'Config get');
+    }
+});
+
+app.post('/settings/save', async (req, res) => {
+    try {
+        const configData = req.body;
+        
+        if (!configData.discord_token) {
+            return sendError(res, 'Discord token is required');
+        }
+        
+        await configManager.saveConfig(configData);
+        sendSuccess(res, { config: configManager.getConfig() }, 'Settings saved successfully');
+    } catch (error) {
+        handleRouteError(res, error, 'Settings save');
+    }
+});
+
+app.post('/settings/test', async (req, res) => {
+    try {
+        const config = configManager.getConfig();
+        const results = {};
+        
+        if (config.discord_token) {
+            results.token = await testDiscordToken(config.discord_token);
+        }
+        
+        if (config.webhook_url) {
+            results.webhook = await testWebhook(config.webhook_url);
+        }
+        
+        res.json(results);
+    } catch (error) {
+        handleRouteError(res, error, 'Settings test');
+    }
+});
+
+// ==================== MISSING ROUTES ====================
+
+// Test token route
+app.post('/test-token', async (req, res) => {
+    try {
+        const { token } = req.body;
+        
+        if (!token) {
+            return res.json({ valid: false, message: 'No token provided' });
+        }
+        
+        const result = await testDiscordToken(token);
+        res.json(result);
+    } catch (error) {
+        res.json({ valid: false, message: 'Token test failed' });
+    }
+});
+
+// Test webhook route
+app.post('/test-webhook', async (req, res) => {
+    try {
+        const { webhookUrl } = req.body;
+        
+        if (!webhookUrl) {
+            return res.json({ valid: false, message: 'No webhook URL provided' });
+        }
+        
+        const result = await testWebhook(webhookUrl, 'Test message from Discord Advanced Tools');
+        res.json(result);
+    } catch (error) {
+        res.json({ valid: false, message: 'Webhook test failed' });
+    }
+});
+
+// Settings routes
+app.get('/settings', (req, res) => {
+    try {
+        res.json(configManager.getConfig());
+    } catch (error) {
+        handleRouteError(res, error, 'Settings get');
+    }
+});
+
+app.post('/settings', async (req, res) => {
+    try {
+        const configData = req.body;
+        
+        await configManager.saveConfig(configData);
+        sendSuccess(res, { config: configManager.getConfig() }, 'Settings saved successfully');
+    } catch (error) {
+        handleRouteError(res, error, 'Settings save');
+    }
+});
+
+// System info route
+app.get('/system-info', (req, res) => {
+    try {
+        const memUsage = process.memoryUsage();
+        const uptime = process.uptime();
+        
+        res.json({
+            nodeVersion: process.version,
+            uptime: formatUptime(uptime),
+            memoryUsage: `${Math.round(memUsage.heapUsed / 1024 / 1024)}MB / ${Math.round(memUsage.heapTotal / 1024 / 1024)}MB`,
+            activeConnections: io.sockets.sockets.size || 0
+        });
+    } catch (error) {
+        handleRouteError(res, error, 'System info');
+    }
+});
+
+// Helper function for uptime formatting
+const formatUptime = (seconds) => {
+    const days = Math.floor(seconds / 86400);
+    const hours = Math.floor((seconds % 86400) / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = Math.floor(seconds % 60);
+    
+    if (days > 0) {
+        return `${days}d ${hours}h ${minutes}m ${secs}s`;
+    } else if (hours > 0) {
+        return `${hours}h ${minutes}m ${secs}s`;
+    } else if (minutes > 0) {
+        return `${minutes}m ${secs}s`;
+    } else {
+        return `${secs}s`;
+    }
+};
+
+// ==================== SOCKET.IO ====================
+
 io.on('connection', (socket) => {
     console.log('Client connected:', socket.id);
     
     socket.on('disconnect', () => {
         console.log('Client disconnected:', socket.id);
+    });
+
+    socket.on('start-js-cloning', async (data) => {
+        try {
+            const { token, sourceGuildId, targetGuildId, options } = data;
+            
+            if (!token || !sourceGuildId || !targetGuildId) {
+                socket.emit('cloning-error', { message: 'Token, source server ID, and target server ID are required' });
+                return;
+            }
+
+            if (sourceGuildId === targetGuildId) {
+                socket.emit('cloning-error', { message: 'Source and target servers cannot be the same' });
+                return;
+            }
+
+            const clonerId = Date.now().toString();
+            
+            // Create cloner instance
+            const jsCloner = new JSCloner(token, sourceGuildId, targetGuildId, options, io, clonerId);
+            activeCloners.set(clonerId, jsCloner);
+            
+            // Notify client that cloning started
+            socket.emit('js-cloning-started', { clonerId });
+            
+            // Start cloning asynchronously
+            jsCloner.startCloning()
+                .then(success => {
+                    io.emit('js-cloning-completed', { clonerId, success });
+                    activeCloners.delete(clonerId);
+                })
+                .catch(error => {
+                    io.emit('js-cloning-completed', { clonerId, success: false, error: error.message });
+                    activeCloners.delete(clonerId);
+                });
+
+        } catch (error) {
+            socket.emit('cloning-error', { message: error.message });
+        }
+    });
+
+    socket.on('stop-js-cloning', (data) => {
+        const { clonerId } = data;
+        if (activeCloners.has(clonerId)) {
+            const cloner = activeCloners.get(clonerId);
+            cloner.stop();
+            activeCloners.delete(clonerId);
+            socket.emit('js-cloning-stopped', { clonerId });
+        }
     });
 
     socket.on('stop-cloning', (data) => {
@@ -209,472 +531,14 @@ io.on('connection', (socket) => {
     });
 });
 
-class ServerCloner {
-    constructor(token, sourceServerId, targetServerId, options, io, clonerId) {
-        this.token = token;
-        this.sourceServerId = sourceServerId;
-        this.targetServerId = targetServerId;
-        this.options = options || {};
-        this.io = io;
-        this.clonerId = clonerId;
-        this.client = null;
-        this.stopped = false;
-        this.stats = {
-            rolesCloned: 0,
-            categoriesCloned: 0,
-            textChannelsCloned: 0,
-            voiceChannelsCloned: 0,
-            messagesCloned: 0,
-            errors: 0,
-            startTime: null,
-            progress: 0
-        };
-    }
-
-    async startCloning() {
-        try {
-            this.stats.startTime = Date.now();
-            this.emitProgress('Validating Discord token...', 0);
-
-            // Validate token format
-            if (!this.token || this.token.trim() === '') {
-                throw new Error('Discord token is required');
-            }
-
-            // Remove common prefixes if user accidentally included them
-            let cleanToken = this.token.trim();
-            if (cleanToken.startsWith('Bot ')) {
-                cleanToken = cleanToken.substring(4);
-            }
-            if (cleanToken.startsWith('Bearer ')) {
-                cleanToken = cleanToken.substring(7);
-            }
-
-            // Basic token format validation
-            if (cleanToken.length < 50) {
-                throw new Error('Invalid token format. Discord tokens are typically 59+ characters long.');
-            }
-
-            this.token = cleanToken;
-            this.emitProgress('Connecting to Discord...', 5);
-
-            // Only bot tokens are supported by Discord.js
-            this.client = new Client({
-                intents: [
-                    GatewayIntentBits.Guilds,
-                    GatewayIntentBits.GuildMessages,
-                    GatewayIntentBits.GuildMembers,
-                    GatewayIntentBits.MessageContent
-                ]
-            });
-
-            try {
-                await this.client.login(this.token);
-                this.emitProgress('Connected to Discord successfully', 10);
-            } catch (loginError) {
-                if (loginError.code === 'TokenInvalid') {
-                    throw new Error('Invalid Discord bot token. Please check your token and try again. Only BOT tokens are supported, not user tokens.');
-                }
-                if (loginError.message.includes('privileged intent')) {
-                    throw new Error('Bot is missing required privileged intents. Please enable Message Content Intent in Discord Developer Portal.');
-                }
-                throw new Error(`Discord login failed: ${loginError.message}`);
-            }
-
-            // Get source and target guilds
-            let sourceGuild, targetGuild;
-            
-            try {
-                this.emitProgress('Accessing source server...', 15);
-                sourceGuild = await this.client.guilds.fetch(this.sourceServerId);
-                if (!sourceGuild) {
-                    throw new Error(`Could not access source server (ID: ${this.sourceServerId}). Make sure the bot is added to this server with proper permissions.`);
-                }
-                this.emitLog(`Source server found: ${sourceGuild.name}`);
-            } catch (error) {
-                if (error.code === 'Unknown Guild') {
-                    throw new Error(`Source server not found (ID: ${this.sourceServerId}). Make sure the server ID is correct and the bot is added to this server.`);
-                }
-                throw new Error(`Failed to access source server: ${error.message}`);
-            }
-
-            try {
-                this.emitProgress('Accessing target server...', 20);
-                targetGuild = await this.client.guilds.fetch(this.targetServerId);
-                if (!targetGuild) {
-                    throw new Error(`Could not access target server (ID: ${this.targetServerId}). Make sure the bot is added to this server with proper permissions.`);
-                }
-                this.emitLog(`Target server found: ${targetGuild.name}`);
-            } catch (error) {
-                if (error.code === 'Unknown Guild') {
-                    throw new Error(`Target server not found (ID: ${this.targetServerId}). Make sure the server ID is correct and the bot is added to this server.`);
-                }
-                throw new Error(`Failed to access target server: ${error.message}`);
-            }
-
-            // Check bot permissions
-            const sourcePermissions = sourceGuild.members.me?.permissions;
-            const targetPermissions = targetGuild.members.me?.permissions;
-
-            if (!sourcePermissions?.has(PermissionsBitField.Flags.Administrator) && 
-                (!sourcePermissions?.has(PermissionsBitField.Flags.ManageRoles) || 
-                 !sourcePermissions?.has(PermissionsBitField.Flags.ManageChannels))) {
-                throw new Error(`Bot lacks sufficient permissions in source server "${sourceGuild.name}". Please ensure the bot has Administrator permission or at least Manage Roles and Manage Channels permissions.`);
-            }
-
-            if (!targetPermissions?.has(PermissionsBitField.Flags.Administrator) && 
-                (!targetPermissions?.has(PermissionsBitField.Flags.ManageRoles) || 
-                 !targetPermissions?.has(PermissionsBitField.Flags.ManageChannels))) {
-                throw new Error(`Bot lacks sufficient permissions in target server "${targetGuild.name}". Please ensure the bot has Administrator permission or at least Manage Roles and Manage Channels permissions.`);
-            }
-
-            this.emitProgress(`Found servers: ${sourceGuild.name} → ${targetGuild.name}`, 25);
-
-            // Start cloning process
-            await this.cloneServer(sourceGuild, targetGuild);
-
-            this.emitProgress('Cloning completed successfully!', 100);
-            return true;
-
-        } catch (error) {
-            console.error('Cloning error:', error);
-            this.emitError(error.message);
-            return false;
-        } finally {
-            if (this.client) {
-                this.client.destroy();
-            }
-        }
-    }
-
-    async cloneServer(sourceGuild, targetGuild) {
-        const steps = [];
-        
-        if (this.options.cloneRoles) steps.push('roles');
-        if (this.options.cloneCategories) steps.push('categories');
-        if (this.options.cloneChannels) steps.push('channels');
-        if (this.options.cloneMessages) steps.push('messages');
-
-        const totalSteps = steps.length;
-        let currentStep = 0;
-
-        // Update server info
-        if (this.options.cloneServerInfo) {
-            await this.cloneServerInfo(sourceGuild, targetGuild);
-            this.emitProgress('Server info updated', 20);
-        }
-
-        // Clone roles
-        if (this.options.cloneRoles && !this.stopped) {
-            await this.cloneRoles(sourceGuild, targetGuild);
-            currentStep++;
-            this.emitProgress(`Roles cloned (${currentStep}/${totalSteps})`, 20 + (currentStep * 20));
-        }
-
-        // Clone categories
-        if (this.options.cloneCategories && !this.stopped) {
-            await this.cloneCategories(sourceGuild, targetGuild);
-            currentStep++;
-            this.emitProgress(`Categories cloned (${currentStep}/${totalSteps})`, 20 + (currentStep * 20));
-        }
-
-        // Clone channels
-        if (this.options.cloneChannels && !this.stopped) {
-            await this.cloneChannels(sourceGuild, targetGuild);
-            currentStep++;
-            this.emitProgress(`Channels cloned (${currentStep}/${totalSteps})`, 20 + (currentStep * 20));
-        }
-
-        // Clone messages
-        if (this.options.cloneMessages && !this.stopped) {
-            await this.cloneMessages(sourceGuild, targetGuild);
-            currentStep++;
-            this.emitProgress(`Messages cloned (${currentStep}/${totalSteps})`, 20 + (currentStep * 20));
-        }
-    }
-
-    async cloneServerInfo(sourceGuild, targetGuild) {
-        try {
-            const updates = {};
-            
-            if (sourceGuild.name !== targetGuild.name) {
-                updates.name = sourceGuild.name;
-            }
-
-            if (sourceGuild.icon && sourceGuild.icon !== targetGuild.icon) {
-                updates.icon = sourceGuild.iconURL({ format: 'png', size: 1024 });
-            }
-
-            if (Object.keys(updates).length > 0) {
-                await targetGuild.edit(updates);
-                this.emitLog('Server info updated');
-            }
-        } catch (error) {
-            this.emitError(`Failed to update server info: ${error.message}`);
-            this.stats.errors++;
-        }
-    }
-
-    async cloneRoles(sourceGuild, targetGuild) {
-        try {
-            const sourceRoles = sourceGuild.roles.cache
-                .filter(role => !role.managed && role.name !== '@everyone')
-                .sort((a, b) => a.position - b.position);
-
-            // Delete existing roles (except @everyone and managed roles)
-            const targetRoles = targetGuild.roles.cache
-                .filter(role => !role.managed && role.name !== '@everyone');
-            
-            for (const role of targetRoles.values()) {
-                try {
-                    await role.delete();
-                    await this.delay(500); // Rate limiting
-                } catch (error) {
-                    this.emitError(`Failed to delete role: ${error.message}`);
-                }
-            }
-
-            // Create new roles
-            for (const sourceRole of sourceRoles.values()) {
-                if (this.stopped) break;
-                
-                try {
-                    await targetGuild.roles.create({
-                        name: sourceRole.name,
-                        color: sourceRole.color,
-                        hoist: sourceRole.hoist,
-                        mentionable: sourceRole.mentionable,
-                        permissions: sourceRole.permissions,
-                        position: sourceRole.position
-                    });
-                    
-                    this.stats.rolesCloned++;
-                    this.emitLog(`Role created: ${sourceRole.name}`);
-                    await this.delay(1000); // Rate limiting
-                } catch (error) {
-                    this.emitError(`Failed to create role ${sourceRole.name}: ${error.message}`);
-                    this.stats.errors++;
-                }
-            }
-        } catch (error) {
-            this.emitError(`Role cloning failed: ${error.message}`);
-            this.stats.errors++;
-        }
-    }
-
-    async cloneCategories(sourceGuild, targetGuild) {
-        try {
-            const sourceCategories = sourceGuild.channels.cache
-                .filter(channel => channel.type === 4) // Category
-                .sort((a, b) => a.position - b.position);
-
-            // Delete existing categories
-            const targetCategories = targetGuild.channels.cache
-                .filter(channel => channel.type === 4);
-            
-            for (const category of targetCategories.values()) {
-                try {
-                    await category.delete();
-                    await this.delay(500);
-                } catch (error) {
-                    this.emitError(`Failed to delete category: ${error.message}`);
-                }
-            }
-
-            // Create new categories
-            for (const sourceCategory of sourceCategories.values()) {
-                if (this.stopped) break;
-                
-                try {
-                    await targetGuild.channels.create({
-                        name: sourceCategory.name,
-                        type: 4, // Category
-                        position: sourceCategory.position,
-                        permissionOverwrites: sourceCategory.permissionOverwrites.cache
-                    });
-                    
-                    this.stats.categoriesCloned++;
-                    this.emitLog(`Category created: ${sourceCategory.name}`);
-                    await this.delay(1000);
-                } catch (error) {
-                    this.emitError(`Failed to create category ${sourceCategory.name}: ${error.message}`);
-                    this.stats.errors++;
-                }
-            }
-        } catch (error) {
-            this.emitError(`Category cloning failed: ${error.message}`);
-            this.stats.errors++;
-        }
-    }
-
-    async cloneChannels(sourceGuild, targetGuild) {
-        try {
-            // Get all non-category channels
-            const sourceChannels = sourceGuild.channels.cache
-                .filter(channel => channel.type !== 4)
-                .sort((a, b) => a.position - b.position);
-
-            // Delete existing channels
-            const targetChannels = targetGuild.channels.cache
-                .filter(channel => channel.type !== 4);
-            
-            for (const channel of targetChannels.values()) {
-                try {
-                    await channel.delete();
-                    await this.delay(500);
-                } catch (error) {
-                    this.emitError(`Failed to delete channel: ${error.message}`);
-                }
-            }
-
-            // Create new channels
-            for (const sourceChannel of sourceChannels.values()) {
-                if (this.stopped) break;
-                
-                try {
-                    const channelData = {
-                        name: sourceChannel.name,
-                        type: sourceChannel.type,
-                        position: sourceChannel.position,
-                        permissionOverwrites: sourceChannel.permissionOverwrites.cache
-                    };
-
-                    // Find parent category if exists
-                    if (sourceChannel.parent) {
-                        const targetCategory = targetGuild.channels.cache
-                            .find(c => c.type === 4 && c.name === sourceChannel.parent.name);
-                        if (targetCategory) {
-                            channelData.parent = targetCategory;
-                        }
-                    }
-
-                    // Add type-specific properties
-                    if (sourceChannel.type === 0) { // Text channel
-                        channelData.topic = sourceChannel.topic;
-                        channelData.nsfw = sourceChannel.nsfw;
-                        channelData.rateLimitPerUser = sourceChannel.rateLimitPerUser;
-                        this.stats.textChannelsCloned++;
-                    } else if (sourceChannel.type === 2) { // Voice channel
-                        channelData.bitrate = sourceChannel.bitrate;
-                        channelData.userLimit = sourceChannel.userLimit;
-                        this.stats.voiceChannelsCloned++;
-                    }
-
-                    await targetGuild.channels.create(channelData);
-                    this.emitLog(`Channel created: ${sourceChannel.name}`);
-                    await this.delay(1000);
-                } catch (error) {
-                    this.emitError(`Failed to create channel ${sourceChannel.name}: ${error.message}`);
-                    this.stats.errors++;
-                }
-            }
-        } catch (error) {
-            this.emitError(`Channel cloning failed: ${error.message}`);
-            this.stats.errors++;
-        }
-    }
-
-    async cloneMessages(sourceGuild, targetGuild) {
-        try {
-            const messageLimit = parseInt(this.options.messageLimit) || 50;
-            const sourceTextChannels = sourceGuild.channels.cache
-                .filter(channel => channel.type === 0);
-
-            for (const sourceChannel of sourceTextChannels.values()) {
-                if (this.stopped) break;
-
-                const targetChannel = targetGuild.channels.cache
-                    .find(c => c.name === sourceChannel.name && c.type === 0);
-
-                if (!targetChannel) continue;
-
-                try {
-                    const messages = await sourceChannel.messages.fetch({ limit: messageLimit });
-                    const messageArray = Array.from(messages.values()).reverse();
-
-                    for (const message of messageArray) {
-                        if (this.stopped) break;
-
-                        try {
-                            let content = `**${message.author.displayName}** (${message.createdAt.toLocaleString()})\n`;
-                            
-                            if (message.content) {
-                                content += message.content;
-                            }
-
-                            if (message.attachments.size > 0) {
-                                content += '\n\n**Attachments:**\n';
-                                message.attachments.forEach(attachment => {
-                                    content += `${attachment.url}\n`;
-                                });
-                            }
-
-                            if (content.length > 2000) {
-                                content = content.substring(0, 1997) + '...';
-                            }
-
-                            await targetChannel.send(content);
-                            this.stats.messagesCloned++;
-                            await this.delay(1000); // Rate limiting for messages
-                        } catch (error) {
-                            this.emitError(`Failed to clone message: ${error.message}`);
-                            this.stats.errors++;
-                        }
-                    }
-
-                    this.emitLog(`Messages cloned for channel: ${sourceChannel.name}`);
-                } catch (error) {
-                    this.emitError(`Failed to fetch messages from ${sourceChannel.name}: ${error.message}`);
-                    this.stats.errors++;
-                }
-            }
-        } catch (error) {
-            this.emitError(`Message cloning failed: ${error.message}`);
-            this.stats.errors++;
-        }
-    }
-
-    emitProgress(message, progress) {
-        this.stats.progress = progress;
-        this.io.emit('cloning-progress', {
-            clonerId: this.clonerId,
-            message,
-            progress,
-            stats: this.stats
-        });
-    }
-
-    emitLog(message) {
-        this.io.emit('cloning-log', {
-            clonerId: this.clonerId,
-            message,
-            timestamp: new Date().toISOString()
-        });
-    }
-
-    emitError(message) {
-        this.stats.errors++;
-        this.io.emit('cloning-error', {
-            clonerId: this.clonerId,
-            message,
-            timestamp: new Date().toISOString()
-        });
-    }
-
-    delay(ms) {
-        return new Promise(resolve => setTimeout(resolve, ms));
-    }
-
-    stop() {
-        this.stopped = true;
-        if (this.client) {
-            this.client.destroy();
-        }
-    }
-}
+// ==================== SERVER START ====================
 
 const PORT = process.env.PORT || 3001;
 server.listen(PORT, () => {
-    console.log(`Discord Server Cloner Web UI running on port ${PORT}`);
-    console.log(`Open http://localhost:${PORT} to access the interface`);
+    console.log(`Discord Advanced Tools running on port ${PORT}`);
+    console.log(`Server Cloner: http://localhost:${PORT}/`);
+    console.log(`Auto Poster: http://localhost:${PORT}/autopost`);
+    console.log(`Settings: http://localhost:${PORT}/settings`);
 });
+
+module.exports = app;

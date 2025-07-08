@@ -1,0 +1,354 @@
+/* Discord Advanced Tools - Custom Styles */
+
+/* Global Styles */
+:root {
+    --discord-blurple: #5865F2;
+    --discord-green: #57F287;
+    --discord-yellow: #FEE75C;
+    --discord-fuchsia: #EB459E;
+    --discord-red: #ED4245;
+    --discord-white: #FFFFFF;
+    --discord-black: #000000;
+    --discord-dark-1: #36393f;
+    --discord-dark-2: #2f3136;
+    --discord-dark-3: #202225;
+    --discord-dark-4: #18191c;
+}
+
+body {
+    font-family: 'Whitney', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    background-color: #f8f9fa;
+    color: #2f3136;
+}
+
+/* Navigation */
+.navbar-brand {
+    font-weight: 600;
+    font-size: 1.25rem;
+}
+
+.navbar-nav .nav-link {
+    font-weight: 500;
+    transition: all 0.3s ease;
+    border-radius: 8px;
+    margin: 0 2px;
+}
+
+.navbar-nav .nav-link:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    transform: translateY(-1px);
+}
+
+.navbar-nav .nav-link.active {
+    background-color: var(--discord-blurple);
+    color: white !important;
+}
+
+/* Cards */
+.card {
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+.card-header {
+    border-radius: 12px 12px 0 0 !important;
+    border-bottom: none;
+    font-weight: 600;
+}
+
+.card-body {
+    padding: 1.5rem;
+}
+
+/* Buttons */
+.btn {
+    border-radius: 8px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    border: none;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--discord-blurple), #4752c4);
+}
+
+.btn-success {
+    background: linear-gradient(135deg, var(--discord-green), #46d16e);
+}
+
+.btn-warning {
+    background: linear-gradient(135deg, var(--discord-yellow), #f1c40f);
+    color: var(--discord-black);
+}
+
+.btn-danger {
+    background: linear-gradient(135deg, var(--discord-red), #c0392b);
+}
+
+.btn-info {
+    background: linear-gradient(135deg, #3498db, #2980b9);
+}
+
+.btn-secondary {
+    background: linear-gradient(135deg, #95a5a6, #7f8c8d);
+}
+
+.btn-dark {
+    background: linear-gradient(135deg, var(--discord-dark-2), var(--discord-dark-3));
+}
+
+/* Form Controls */
+.form-control {
+    border-radius: 8px;
+    border: 2px solid #e1e6ea;
+    transition: all 0.3s ease;
+    padding: 0.75rem 1rem;
+}
+
+.form-control:focus {
+    border-color: var(--discord-blurple);
+    box-shadow: 0 0 0 0.2rem rgba(88, 101, 242, 0.25);
+}
+
+.form-check-input:checked {
+    background-color: var(--discord-green);
+    border-color: var(--discord-green);
+}
+
+/* Progress Bar */
+.progress {
+    border-radius: 25px;
+    background-color: #e9ecef;
+    overflow: hidden;
+}
+
+.progress-bar {
+    border-radius: 25px;
+    background: linear-gradient(90deg, var(--discord-blurple), var(--discord-green));
+    transition: width 0.6s ease;
+}
+
+/* Badges */
+.badge {
+    border-radius: 20px;
+    font-weight: 500;
+    padding: 0.5rem 1rem;
+}
+
+/* Alerts */
+.alert {
+    border-radius: 8px;
+    border: none;
+    font-weight: 500;
+}
+
+.alert-success {
+    background: linear-gradient(135deg, rgba(87, 242, 135, 0.1), rgba(70, 209, 110, 0.1));
+    color: #27ae60;
+    border-left: 4px solid var(--discord-green);
+}
+
+.alert-danger {
+    background: linear-gradient(135deg, rgba(237, 66, 69, 0.1), rgba(192, 57, 43, 0.1));
+    color: #c0392b;
+    border-left: 4px solid var(--discord-red);
+}
+
+.alert-warning {
+    background: linear-gradient(135deg, rgba(254, 231, 92, 0.1), rgba(241, 196, 15, 0.1));
+    color: #d68910;
+    border-left: 4px solid var(--discord-yellow);
+}
+
+.alert-info {
+    background: linear-gradient(135deg, rgba(52, 152, 219, 0.1), rgba(41, 128, 185, 0.1));
+    color: #2980b9;
+    border-left: 4px solid #3498db;
+}
+
+/* Connection Status */
+#connectionStatus {
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.7;
+    }
+    100% {
+        opacity: 1;
+    }
+}
+
+/* Log Container */
+#cloneLogs, #autopostLogs {
+    font-size: 0.875rem;
+    line-height: 1.4;
+    background: linear-gradient(135deg, var(--discord-dark-3), var(--discord-dark-4)) !important;
+    border-radius: 8px;
+}
+
+#cloneLogs::-webkit-scrollbar, #autopostLogs::-webkit-scrollbar {
+    width: 8px;
+}
+
+#cloneLogs::-webkit-scrollbar-track, #autopostLogs::-webkit-scrollbar-track {
+    background: var(--discord-dark-4);
+    border-radius: 4px;
+}
+
+#cloneLogs::-webkit-scrollbar-thumb, #autopostLogs::-webkit-scrollbar-thumb {
+    background: var(--discord-blurple);
+    border-radius: 4px;
+}
+
+#cloneLogs::-webkit-scrollbar-thumb:hover, #autopostLogs::-webkit-scrollbar-thumb:hover {
+    background: #4752c4;
+}
+
+/* Stats Counters */
+.border.rounded.p-2, .border.rounded.p-3 {
+    border-radius: 12px !important;
+    transition: all 0.3s ease;
+    border: 2px solid #e1e6ea !important;
+}
+
+.border.rounded.p-2:hover, .border.rounded.p-3:hover {
+    border-color: var(--discord-blurple) !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(88, 101, 242, 0.15);
+}
+
+/* Header Gradient */
+.bg-primary {
+    background: linear-gradient(135deg, var(--discord-blurple), #4752c4) !important;
+}
+
+/* Footer */
+footer {
+    background: linear-gradient(135deg, var(--discord-dark-2), var(--discord-dark-3)) !important;
+}
+
+/* Loading Animations */
+.fa-spin {
+    animation: fa-spin 1s infinite linear;
+}
+
+@keyframes fa-spin {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .card-body {
+        padding: 1rem;
+    }
+    
+    .btn-lg {
+        padding: 0.75rem 1.5rem;
+        font-size: 1rem;
+    }
+    
+    .row.text-center > .col-md-3 {
+        margin-bottom: 1rem;
+    }
+    
+    .navbar-nav .nav-link {
+        margin: 2px 0;
+    }
+}
+
+/* Custom Utility Classes */
+.text-discord {
+    color: var(--discord-blurple) !important;
+}
+
+.bg-discord {
+    background-color: var(--discord-blurple) !important;
+}
+
+.border-discord {
+    border-color: var(--discord-blurple) !important;
+}
+
+.shadow-discord {
+    box-shadow: 0 4px 12px rgba(88, 101, 242, 0.15) !important;
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+    body.dark-mode {
+        background-color: var(--discord-dark-4);
+        color: var(--discord-white);
+    }
+    
+    body.dark-mode .card {
+        background-color: var(--discord-dark-2);
+        color: var(--discord-white);
+    }
+    
+    body.dark-mode .form-control {
+        background-color: var(--discord-dark-3);
+        border-color: var(--discord-dark-1);
+        color: var(--discord-white);
+    }
+    
+    body.dark-mode .form-control:focus {
+        background-color: var(--discord-dark-3);
+        border-color: var(--discord-blurple);
+        color: var(--discord-white);
+    }
+}
+
+/* Animation for page transitions */
+main {
+    animation: fadeInUp 0.5s ease-out;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Icon animations */
+.fa-check-circle, .fa-exclamation-triangle, .fa-exclamation-circle, .fa-info-circle {
+    animation: iconPulse 0.5s ease-out;
+}
+
+@keyframes iconPulse {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.1);
+    }
+    100% {
+        transform: scale(1);
+    }
+}

@@ -1,0 +1,333 @@
+<div class="row">
+    <div class="col-lg-8 mx-auto">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h4 class="card-title mb-0">
+                    <i class="fas fa-clone me-2"></i>Discord Server Cloner
+                </h4>
+            </div>
+            <div class="card-body">
+                <form id="cloneForm">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="sourceGuildId" class="form-label">
+                                <i class="fas fa-server me-1"></i>Source Server ID
+                            </label>
+                            <input type="text" class="form-control" id="sourceGuildId" name="sourceGuildId" 
+                                   placeholder="Enter source server ID" required>
+                            <div class="form-text">The server you want to clone from</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="targetGuildId" class="form-label">
+                                <i class="fas fa-bullseye me-1"></i>Target Server ID
+                            </label>
+                            <input type="text" class="form-control" id="targetGuildId" name="targetGuildId" 
+                                   placeholder="Enter target server ID" required>
+                            <div class="form-text">The server you want to clone to</div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="delay" class="form-label">
+                                <i class="fas fa-clock me-1"></i>Delay (ms)
+                            </label>
+                            <input type="number" class="form-control" id="delay" name="delay" value="1000" min="100">
+                            <div class="form-text">Delay between API requests</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="maxMessages" class="form-label">
+                                <i class="fas fa-comment me-1"></i>Max Messages per Channel
+                            </label>
+                            <input type="number" class="form-control" id="maxMessages" name="maxMessages" value="50" min="1">
+                            <div class="form-text">Maximum messages to clone per channel</div>
+                        </div>
+                    </div>
+
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h6 class="mb-0">
+                                <i class="fas fa-cogs me-1"></i>Clone Options
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="cloneRoles" name="cloneRoles" checked>
+                                        <label class="form-check-label" for="cloneRoles">
+                                            <i class="fas fa-users-cog me-1"></i>Clone Roles
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="cloneChannels" name="cloneChannels" checked>
+                                        <label class="form-check-label" for="cloneChannels">
+                                            <i class="fas fa-hashtag me-1"></i>Clone Channels
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="cloneMessages" name="cloneMessages" checked>
+                                        <label class="form-check-label" for="cloneMessages">
+                                            <i class="fas fa-comments me-1"></i>Clone Messages
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="cloneCategories" name="cloneCategories" checked>
+                                        <label class="form-check-label" for="cloneCategories">
+                                            <i class="fas fa-folder me-1"></i>Clone Categories
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="cloneEmojis" name="cloneEmojis">
+                                        <label class="form-check-label" for="cloneEmojis">
+                                            <i class="fas fa-smile me-1"></i>Clone Emojis
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="cloneWebhooks" name="cloneWebhooks">
+                                        <label class="form-check-label" for="cloneWebhooks">
+                                            <i class="fas fa-webhook me-1"></i>Clone Webhooks
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="cloneServerInfo" name="cloneServerInfo" checked>
+                                        <label class="form-check-label" for="cloneServerInfo">
+                                            <i class="fas fa-server me-1"></i>Clone Server Info
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="deleteExisting" name="deleteExisting">
+                                        <label class="form-check-label" for="deleteExisting">
+                                            <i class="fas fa-trash me-1"></i>Delete Existing
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary btn-lg" id="startCloneBtn">
+                            <i class="fas fa-play me-2"></i>Start Cloning
+                        </button>
+                        <button type="button" class="btn btn-danger btn-lg d-none" id="stopCloneBtn">
+                            <i class="fas fa-stop me-2"></i>Stop Cloning
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Progress Card -->
+        <div class="card shadow mt-4 d-none" id="progressCard">
+            <div class="card-header bg-success text-white">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-chart-line me-2"></i>Cloning Progress
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="progress mb-3" style="height: 25px;">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                         id="progressBar" role="progressbar" style="width: 0%">
+                        <span id="progressText">0%</span>
+                    </div>
+                </div>
+
+                <div class="row text-center">
+                    <div class="col-md-3">
+                        <div class="border rounded p-2">
+                            <i class="fas fa-users-cog text-primary"></i>
+                            <div class="fw-bold" id="rolesCount">0</div>
+                            <small class="text-muted">Roles</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="border rounded p-2">
+                            <i class="fas fa-hashtag text-success"></i>
+                            <div class="fw-bold" id="channelsCount">0</div>
+                            <small class="text-muted">Channels</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="border rounded p-2">
+                            <i class="fas fa-comments text-info"></i>
+                            <div class="fw-bold" id="messagesCount">0</div>
+                            <small class="text-muted">Messages</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="border rounded p-2">
+                            <i class="fas fa-smile text-warning"></i>
+                            <div class="fw-bold" id="emojisCount">0</div>
+                            <small class="text-muted">Emojis</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-3">
+                    <strong>Status:</strong> <span id="currentStatus">Ready to start...</span>
+                </div>
+                <div>
+                    <strong>Last Update:</strong> <span id="lastUpdate">Never</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Log Card -->
+        <div class="card shadow mt-4">
+            <div class="card-header bg-dark text-white">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-terminal me-2"></i>Clone Logs
+                </h5>
+            </div>
+            <div class="card-body">
+                <div id="cloneLogs" class="bg-dark text-light p-3 rounded" style="height: 300px; overflow-y: auto; font-family: monospace;">
+                    <div class="text-muted">Logs will appear here when cloning starts...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const socket = io();
+    const cloneForm = document.getElementById('cloneForm');
+    const startBtn = document.getElementById('startCloneBtn');
+    const stopBtn = document.getElementById('stopCloneBtn');
+    const progressCard = document.getElementById('progressCard');
+    const progressBar = document.getElementById('progressBar');
+    const progressText = document.getElementById('progressText');
+    const logsContainer = document.getElementById('cloneLogs');
+    
+    let currentClonerId = null;
+
+    // Form submission
+    cloneForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(cloneForm);
+        const data = {
+            sourceGuildId: formData.get('sourceGuildId'),
+            targetGuildId: formData.get('targetGuildId'),
+            options: {
+                delay: parseInt(formData.get('delay')) || 1000,
+                maxMessages: parseInt(formData.get('maxMessages')) || 50,
+                cloneRoles: formData.has('cloneRoles'),
+                cloneChannels: formData.has('cloneChannels'),
+                cloneCategories: formData.has('cloneCategories'),
+                cloneMessages: formData.has('cloneMessages'),
+                cloneEmojis: formData.has('cloneEmojis'),
+                cloneWebhooks: formData.has('cloneWebhooks'),
+                cloneServerInfo: formData.has('cloneServerInfo'),
+                deleteExisting: formData.has('deleteExisting')
+            }
+        };
+
+        try {
+            const response = await fetch('/clone', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                currentClonerId = result.clonerId;
+                startBtn.classList.add('d-none');
+                stopBtn.classList.remove('d-none');
+                progressCard.classList.remove('d-none');
+                addLog('Clone started successfully!', 'success');
+            } else {
+                addLog(`Error: ${result.error}`, 'error');
+            }
+        } catch (error) {
+            addLog(`Error: ${error.message}`, 'error');
+        }
+    });
+
+    // Stop button
+    stopBtn.addEventListener('click', async function() {
+        if (currentClonerId) {
+            try {
+                const response = await fetch(`/clone/${currentClonerId}/stop`, {
+                    method: 'POST'
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    addLog('Clone stopped by user', 'warning');
+                }
+            } catch (error) {
+                addLog(`Error stopping clone: ${error.message}`, 'error');
+            }
+        }
+    });
+
+    // Socket events
+    socket.on('cloneProgress', function(data) {
+        if (data.clonerId === currentClonerId) {
+            updateProgress(data);
+        }
+    });
+
+    socket.on('cloneComplete', function(data) {
+        if (data.clonerId === currentClonerId) {
+            startBtn.classList.remove('d-none');
+            stopBtn.classList.add('d-none');
+            addLog('Clone completed!', 'success');
+            currentClonerId = null;
+        }
+    });
+
+    socket.on('cloneError', function(data) {
+        if (data.clonerId === currentClonerId) {
+            addLog(`Error: ${data.error}`, 'error');
+        }
+    });
+
+    function updateProgress(data) {
+        // Update progress bar
+        progressBar.style.width = data.progress + '%';
+        progressText.textContent = Math.round(data.progress) + '%';
+        
+        // Update counters
+        document.getElementById('rolesCount').textContent = data.rolesCloned || 0;
+        document.getElementById('channelsCount').textContent = (data.categoriesCloned || 0) + (data.textChannelsCloned || 0) + (data.voiceChannelsCloned || 0);
+        document.getElementById('messagesCount').textContent = data.messagesCloned || 0;
+        document.getElementById('emojisCount').textContent = data.emojisCloned || 0;
+        
+        // Update status
+        document.getElementById('currentStatus').textContent = data.lastMessage || 'Processing...';
+        document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
+        
+        // Add log if there's a message
+        if (data.lastMessage) {
+            addLog(data.lastMessage, 'info');
+        }
+    }
+
+    function addLog(message, type = 'info') {
+        const timestamp = new Date().toLocaleTimeString();
+        const iconClass = {
+            'success': 'fas fa-check-circle text-success',
+            'error': 'fas fa-exclamation-triangle text-danger',
+            'warning': 'fas fa-exclamation-circle text-warning',
+            'info': 'fas fa-info-circle text-info'
+        }[type] || 'fas fa-info-circle text-info';
+
+        const logEntry = document.createElement('div');
+        logEntry.innerHTML = `
+            <span class="text-muted">[${timestamp}]</span>
+            <i class="${iconClass} me-1"></i>
+            ${message}
+        `;
+        
+        logsContainer.appendChild(logEntry);
+        logsContainer.scrollTop = logsContainer.scrollHeight;
+    }
+});
+</script>

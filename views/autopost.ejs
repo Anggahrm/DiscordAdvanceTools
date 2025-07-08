@@ -1,0 +1,308 @@
+<div class="row">
+    <div class="col-lg-8 mx-auto">
+        <div class="card shadow">
+            <div class="card-header bg-success text-white">
+                <h4 class="card-title mb-0">
+                    <i class="fas fa-robot me-2"></i>Discord Auto Poster
+                </h4>
+            </div>
+            <div class="card-body">
+                <form id="autopostForm">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="channelId" class="form-label">
+                                <i class="fas fa-hashtag me-1"></i>Channel ID
+                            </label>
+                            <input type="text" class="form-control" id="channelId" name="channelId" 
+                                   placeholder="Enter channel ID" required>
+                            <div class="form-text">The channel where messages will be posted</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="interval" class="form-label">
+                                <i class="fas fa-clock me-1"></i>Interval (minutes)
+                            </label>
+                            <input type="number" class="form-control" id="interval" name="interval" 
+                                   value="60" min="1" required>
+                            <div class="form-text">Time between posts</div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="messageContent" class="form-label">
+                            <i class="fas fa-comment me-1"></i>Message Content
+                        </label>
+                        <textarea class="form-control" id="messageContent" name="messageContent" 
+                                  rows="4" placeholder="Enter your message content..." required></textarea>
+                        <div class="form-text">The message that will be posted automatically</div>
+                    </div>
+
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h6 class="mb-0">
+                                <i class="fas fa-cogs me-1"></i>Auto Post Options
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="randomMessage" name="randomMessage">
+                                        <label class="form-check-label" for="randomMessage">
+                                            <i class="fas fa-random me-1"></i>Random Message
+                                        </label>
+                                        <div class="form-text">Use random messages from a list</div>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="deleteAfter" name="deleteAfter">
+                                        <label class="form-check-label" for="deleteAfter">
+                                            <i class="fas fa-trash me-1"></i>Delete After Post
+                                        </label>
+                                        <div class="form-text">Delete message after posting</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="useEmbed" name="useEmbed">
+                                        <label class="form-check-label" for="useEmbed">
+                                            <i class="fas fa-newspaper me-1"></i>Use Embed
+                                        </label>
+                                        <div class="form-text">Send as embedded message</div>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="mentionEveryone" name="mentionEveryone">
+                                        <label class="form-check-label" for="mentionEveryone">
+                                            <i class="fas fa-at me-1"></i>Mention Everyone
+                                        </label>
+                                        <div class="form-text">Add @everyone to messages</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-success btn-lg" id="startAutopostBtn">
+                            <i class="fas fa-play me-2"></i>Start Auto Posting
+                        </button>
+                        <button type="button" class="btn btn-danger btn-lg d-none" id="stopAutopostBtn">
+                            <i class="fas fa-stop me-2"></i>Stop Auto Posting
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Status Card -->
+        <div class="card shadow mt-4" id="statusCard">
+            <div class="card-header bg-info text-white">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-chart-bar me-2"></i>Auto Post Status
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-md-3">
+                        <div class="border rounded p-3">
+                            <i class="fas fa-paper-plane text-success fa-2x"></i>
+                            <div class="fw-bold h4 mt-2" id="messagesPosted">0</div>
+                            <small class="text-muted">Messages Posted</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="border rounded p-3">
+                            <i class="fas fa-clock text-primary fa-2x"></i>
+                            <div class="fw-bold h4 mt-2" id="timeRunning">00:00:00</div>
+                            <small class="text-muted">Running Time</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="border rounded p-3">
+                            <i class="fas fa-hourglass-half text-warning fa-2x"></i>
+                            <div class="fw-bold h4 mt-2" id="nextPost">--:--</div>
+                            <small class="text-muted">Next Post</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="border rounded p-3">
+                            <i class="fas fa-exclamation-triangle text-danger fa-2x"></i>
+                            <div class="fw-bold h4 mt-2" id="errorsCount">0</div>
+                            <small class="text-muted">Errors</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span><strong>Status:</strong></span>
+                        <span class="badge bg-secondary" id="currentStatus">Stopped</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mt-2">
+                        <span><strong>Last Post:</strong></span>
+                        <span id="lastPost">Never</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mt-2">
+                        <span><strong>Target Channel:</strong></span>
+                        <span id="targetChannel">None</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Log Card -->
+        <div class="card shadow mt-4">
+            <div class="card-header bg-dark text-white">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-terminal me-2"></i>Auto Post Logs
+                </h5>
+            </div>
+            <div class="card-body">
+                <div id="autopostLogs" class="bg-dark text-light p-3 rounded" style="height: 300px; overflow-y: auto; font-family: monospace;">
+                    <div class="text-muted">Logs will appear here when auto posting starts...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const socket = io();
+    const autopostForm = document.getElementById('autopostForm');
+    const startBtn = document.getElementById('startAutopostBtn');
+    const stopBtn = document.getElementById('stopAutopostBtn');
+    const logsContainer = document.getElementById('autopostLogs');
+    
+    let isRunning = false;
+    let startTime = null;
+    let runningTimeInterval = null;
+
+    // Form submission
+    autopostForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(autopostForm);
+        const data = {
+            channelId: formData.get('channelId'),
+            message: formData.get('messageContent'),
+            interval: parseInt(formData.get('interval')) || 60,
+            options: {
+                randomMessage: formData.has('randomMessage'),
+                deleteAfter: formData.has('deleteAfter'),
+                useEmbed: formData.has('useEmbed'),
+                mentionEveryone: formData.has('mentionEveryone')
+            }
+        };
+
+        try {
+            const response = await fetch('/autopost/start', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                isRunning = true;
+                startTime = new Date();
+                startBtn.classList.add('d-none');
+                stopBtn.classList.remove('d-none');
+                document.getElementById('currentStatus').textContent = 'Running';
+                document.getElementById('currentStatus').className = 'badge bg-success';
+                document.getElementById('targetChannel').textContent = data.channelId;
+                
+                startRunningTimer();
+                addLog('Auto posting started successfully!', 'success');
+            } else {
+                addLog(`Error: ${result.error}`, 'error');
+            }
+        } catch (error) {
+            addLog(`Error: ${error.message}`, 'error');
+        }
+    });
+
+    // Stop button
+    stopBtn.addEventListener('click', async function() {
+        try {
+            const response = await fetch('/autopost/stop', {
+                method: 'POST'
+            });
+            
+            const result = await response.json();
+            if (result.success) {
+                stopAutoPost();
+                addLog('Auto posting stopped by user', 'warning');
+            }
+        } catch (error) {
+            addLog(`Error stopping auto post: ${error.message}`, 'error');
+        }
+    });
+
+    // Socket events
+    socket.on('autopostMessage', function(data) {
+        const messagesPosted = parseInt(document.getElementById('messagesPosted').textContent) + 1;
+        document.getElementById('messagesPosted').textContent = messagesPosted;
+        document.getElementById('lastPost').textContent = new Date().toLocaleTimeString();
+        addLog(`Message posted to channel ${data.channelId}`, 'success');
+    });
+
+    socket.on('autopostError', function(data) {
+        const errorsCount = parseInt(document.getElementById('errorsCount').textContent) + 1;
+        document.getElementById('errorsCount').textContent = errorsCount;
+        addLog(`Error: ${data.error}`, 'error');
+    });
+
+    socket.on('autopostStopped', function(data) {
+        stopAutoPost();
+        addLog('Auto posting stopped', 'warning');
+    });
+
+    function startRunningTimer() {
+        runningTimeInterval = setInterval(() => {
+            if (startTime) {
+                const elapsed = new Date() - startTime;
+                const hours = Math.floor(elapsed / 3600000);
+                const minutes = Math.floor((elapsed % 3600000) / 60000);
+                const seconds = Math.floor((elapsed % 60000) / 1000);
+                
+                document.getElementById('timeRunning').textContent = 
+                    `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            }
+        }, 1000);
+    }
+
+    function stopAutoPost() {
+        isRunning = false;
+        startTime = null;
+        startBtn.classList.remove('d-none');
+        stopBtn.classList.add('d-none');
+        document.getElementById('currentStatus').textContent = 'Stopped';
+        document.getElementById('currentStatus').className = 'badge bg-secondary';
+        
+        if (runningTimeInterval) {
+            clearInterval(runningTimeInterval);
+            runningTimeInterval = null;
+        }
+    }
+
+    function addLog(message, type = 'info') {
+        const timestamp = new Date().toLocaleTimeString();
+        const iconClass = {
+            'success': 'fas fa-check-circle text-success',
+            'error': 'fas fa-exclamation-triangle text-danger',
+            'warning': 'fas fa-exclamation-circle text-warning',
+            'info': 'fas fa-info-circle text-info'
+        }[type] || 'fas fa-info-circle text-info';
+
+        const logEntry = document.createElement('div');
+        logEntry.innerHTML = `
+            <span class="text-muted">[${timestamp}]</span>
+            <i class="${iconClass} me-1"></i>
+            ${message}
+        `;
+        
+        logsContainer.appendChild(logEntry);
+        logsContainer.scrollTop = logsContainer.scrollHeight;
+    }
+});
+</script>

@@ -1,3 +1,7 @@
+# Configuration files
+app_config.json
+autopost_config.json
+
 # Logs
 logs/
 *.log
