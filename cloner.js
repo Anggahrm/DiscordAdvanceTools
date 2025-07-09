@@ -22,9 +22,15 @@ class JSCloner {
             preserveRoleHierarchy: true,
             skipBotChannels: false,
             maxConcurrentOps: 5,
-            delayBetweenOps: 500,
+            delayBetweenOps: 300, // Reduced default delay
             ...options
         };
+        
+        // Extract delay settings for easy access
+        this.baseDelay = this.options.delayBetweenOps || 300;
+        this.roleDelay = Math.max(this.baseDelay, 200); // Minimum 200ms for roles
+        this.channelDelay = Math.max(this.baseDelay * 0.8, 150); // Slightly faster for channels
+        this.categoryDelay = Math.max(this.baseDelay * 0.8, 150); // Slightly faster for categories
         
         // Debug log options
         console.log('Cloner options received:', options);
@@ -81,7 +87,7 @@ class JSCloner {
             this.emitProgress(`Connected as: ${userInfo.username}`, 5);
 
             if (this.isUserToken) {
-                this.emitLog('⚠️  Using user token - some features may be limited or unavailable');
+                this.emitLog('WARNING: Using user token - some features may be limited or unavailable');
                 this.emitLog('   • Role management may not work without proper permissions');
                 this.emitLog('   • Some server settings might be restricted');
             }
@@ -123,9 +129,9 @@ class JSCloner {
                 throw new Error(`Invalid guild ID format: ${guildId}. Guild IDs should be 17-19 digit numbers.`);
             }
             
-            this.emitLog(`🔍 Accessing guild: ${guildId}`);
+            this.emitLog(`Accessing guild: ${guildId}`);
             const response = await this.api.get(`/guilds/${guildId}`);
-            this.emitLog(`✅ Successfully accessed guild: ${response.data.name} (${response.data.id})`);
+            this.emitLog(`Successfully accessed guild: ${response.data.name} (${response.data.id})`);
             return response.data;
         } catch (error) {
             const status = error.response?.status;
@@ -192,12 +198,12 @@ class JSCloner {
         for (let i = 0; i < steps.length; i++) {
             if (this.stopped) break;
             
-            this.emitLog(`\n🔄 Starting ${steps[i].name} cloning...`);
+            this.emitLog(`\nStarting ${steps[i].name} cloning...`);
             try {
                 await steps[i].fn();
-                this.emitLog(`✅ ${steps[i].name} cloning completed successfully`);
+                this.emitLog(`${steps[i].name} cloning completed successfully`);
             } catch (error) {
-                this.emitError(`❌ ${steps[i].name} cloning failed: ${error.message}`);
+                this.emitError(`${steps[i].name} cloning failed: ${error.message}`);
             }
             
             this.emitProgress(`${steps[i].name} processed (${i + 1}/${steps.length})`, 15 + ((i + 1) * (85 / steps.length)));
@@ -206,74 +212,81 @@ class JSCloner {
 
     async cloneServerInfo(sourceGuild, targetGuild) {
         try {
-            this.emitLog('📋 Cloning server information...');
+            this.emitLog('Starting server information cloning...');
+            this.emitLog('Analyzing server settings and information...');
             const updates = {};
             
             // Clone server name
             if (sourceGuild.name !== targetGuild.name) {
                 updates.name = sourceGuild.name;
-                this.emitLog(`📝 Setting server name to: ${sourceGuild.name}`);
+                this.emitLog(`Setting server name to: ${sourceGuild.name}`);
+            } else {
+                this.emitLog('Server name is already the same, skipping...');
             }
 
             // Clone server icon
             if (sourceGuild.icon && sourceGuild.icon !== targetGuild.icon) {
                 try {
-                    this.emitLog('🖼️ Downloading server icon...');
+                    this.emitLog('Downloading server icon...');
                     const iconUrl = `https://cdn.discordapp.com/icons/${sourceGuild.id}/${sourceGuild.icon}.png?size=512`;
                     const iconResponse = await axios.get(iconUrl, { responseType: 'arraybuffer' });
                     updates.icon = `data:image/png;base64,${Buffer.from(iconResponse.data).toString('base64')}`;
-                    this.emitLog('✅ Server icon downloaded and encoded');
+                    this.emitLog('Server icon downloaded and encoded successfully');
                 } catch (iconError) {
                     this.emitError(`Failed to download server icon: ${iconError.message}`);
                 }
+            } else {
+                this.emitLog('Server icon is already the same or not available, skipping...');
             }
 
             // Clone server banner
             if (sourceGuild.banner && sourceGuild.banner !== targetGuild.banner) {
                 try {
-                    this.emitLog('🎨 Downloading server banner...');
+                    this.emitLog('Downloading server banner...');
                     const bannerUrl = `https://cdn.discordapp.com/banners/${sourceGuild.id}/${sourceGuild.banner}.png?size=512`;
                     const bannerResponse = await axios.get(bannerUrl, { responseType: 'arraybuffer' });
                     updates.banner = `data:image/png;base64,${Buffer.from(bannerResponse.data).toString('base64')}`;
-                    this.emitLog('✅ Server banner downloaded and encoded');
+                    this.emitLog('Server banner downloaded and encoded successfully');
                 } catch (bannerError) {
                     this.emitError(`Failed to download server banner: ${bannerError.message}`);
                 }
+            } else {
+                this.emitLog('Server banner is already the same or not available, skipping...');
             }
 
             // Clone other server settings
             if (sourceGuild.description !== targetGuild.description) {
                 updates.description = sourceGuild.description;
-                this.emitLog(`📄 Setting server description`);
+                this.emitLog(`Setting server description`);
             }
 
             if (sourceGuild.verification_level !== targetGuild.verification_level) {
                 updates.verification_level = sourceGuild.verification_level;
-                this.emitLog(`🔒 Setting verification level to: ${sourceGuild.verification_level}`);
+                this.emitLog(`Setting verification level to: ${sourceGuild.verification_level}`);
             }
 
             if (sourceGuild.default_message_notifications !== targetGuild.default_message_notifications) {
                 updates.default_message_notifications = sourceGuild.default_message_notifications;
-                this.emitLog(`🔔 Setting notification level to: ${sourceGuild.default_message_notifications}`);
+                this.emitLog(`Setting notification level to: ${sourceGuild.default_message_notifications}`);
             }
 
             if (sourceGuild.explicit_content_filter !== targetGuild.explicit_content_filter) {
                 updates.explicit_content_filter = sourceGuild.explicit_content_filter;
-                this.emitLog(`🛡️ Setting content filter to: ${sourceGuild.explicit_content_filter}`);
+                this.emitLog(`Setting content filter to: ${sourceGuild.explicit_content_filter}`);
             }
 
             if (Object.keys(updates).length > 0) {
-                this.emitLog('🔄 Applying server updates...');
+                this.emitLog(`Applying ${Object.keys(updates).length} server updates...`);
                 await this.api.patch(`/guilds/${targetGuild.id}`, updates);
-                this.emitLog('✅ Server information updated successfully');
+                this.emitLog('Server information updated successfully');
             } else {
-                this.emitLog('ℹ️ No server information changes needed');
+                this.emitLog('No server information changes needed - all settings are already identical');
             }
 
         } catch (error) {
             if (error.response?.status === 403) {
                 this.emitError('Unable to update server info. User may not have "Manage Server" permission.');
-                this.emitLog('⏭️ Skipping server info update due to insufficient permissions...');
+                this.emitLog('Skipping server info update due to insufficient permissions...');
                 return;
             }
             this.emitError(`Failed to update server info: ${error.response?.data?.message || error.message}`);
@@ -283,7 +296,8 @@ class JSCloner {
 
     async cloneRoles(sourceGuildId, targetGuildId) {
         try {
-            this.emitLog('🎭 Starting role cloning...');
+            this.emitLog('Starting role cloning process...');
+            this.emitLog('Step 1: Fetching roles from both servers...');
             let sourceRoles, targetRoles;
             
             try {
@@ -294,13 +308,15 @@ class JSCloner {
                 ]);
                 sourceRoles = sourceResponse.data;
                 targetRoles = targetResponse.data;
+                
+                this.emitLog(`Step 2: Successfully fetched ${sourceRoles.length} roles from source server and ${targetRoles.length} roles from target server`);
             } catch (error) {
                 const status = error.response?.status;
                 const errorData = error.response?.data;
                 
                 if (status === 403) {
                     this.emitError('Unable to access roles. User tokens may not have permission to manage roles in this server.');
-                    this.emitLog('⏭️ Skipping role cloning due to insufficient permissions...');
+                    this.emitLog('Skipping role cloning due to insufficient permissions...');
                     return;
                 } else if (status === 400) {
                     this.emitError(`Bad request when fetching roles: ${errorData?.message || error.message}`);
@@ -319,25 +335,55 @@ class JSCloner {
             
             const targetFiltered = targetRoles.filter(r => !r.managed && r.name !== '@everyone');
 
-            this.emitLog(`📋 Found ${sourceFiltered.length} roles to clone, ${targetFiltered.length} roles to delete`);
+            this.emitLog(`Step 3: Filtered ${sourceFiltered.length} cloneable roles from source (skipped ${sourceRoles.length - sourceFiltered.length} managed/system roles)`);
+            this.emitLog(`Step 4: Found ${targetFiltered.length} existing roles to delete in target server`);
 
-            // Delete existing roles first
-            for (const role of targetFiltered) {
-                if (this.stopped) break;
-                try {
-                    await this.api.delete(`/guilds/${targetGuildId}/roles/${role.id}`);
-                    this.emitLog(`🗑️ Deleted role: ${role.name}`);
-                    await this.delay(500); // Small delay to avoid rate limits
-                } catch (error) {
-                    if (error.response?.status === 403) {
-                        this.emitError(`Cannot delete role ${role.name} - insufficient permissions or role hierarchy issue`);
-                    } else {
-                        this.emitError(`Failed to delete role ${role.name}: ${error.message}`);
+            // Delete existing roles one by one with proper rate limiting
+            if (targetFiltered.length > 0) {
+                this.emitLog(`Step 5: Starting deletion of ${targetFiltered.length} existing roles...`);
+                let deletedCount = 0;
+                
+                for (const role of targetFiltered) {
+                    if (this.stopped) break;
+                    
+                    try {
+                        this.emitLog(`Deleting role: ${role.name} (${deletedCount + 1}/${targetFiltered.length})`);
+                        await this.api.delete(`/guilds/${targetGuildId}/roles/${role.id}`);
+                        deletedCount++;
+                        this.emitLog(`Successfully deleted role: ${role.name} (${deletedCount}/${targetFiltered.length})`);
+                        
+                        // Wait longer between deletions to avoid rate limits
+                        await this.delay(800);
+                    } catch (error) {
+                        if (error.response?.status === 429) {
+                            const retryAfter = (error.response.headers['retry-after'] || 5) * 1000;
+                            this.emitLog(`Rate limited during role deletion, waiting ${retryAfter/1000}s...`);
+                            await this.delay(retryAfter);
+                            
+                            // Retry the deletion
+                            try {
+                                this.emitLog(`Retrying deletion of role: ${role.name}`);
+                                await this.api.delete(`/guilds/${targetGuildId}/roles/${role.id}`);
+                                deletedCount++;
+                                this.emitLog(`Successfully deleted role (retry): ${role.name} (${deletedCount}/${targetFiltered.length})`);
+                                await this.delay(1000); // Wait even longer after retry
+                            } catch (retryError) {
+                                this.emitError(`Failed to delete role after retry: ${role.name}`);
+                            }
+                        } else if (error.response?.status === 403) {
+                            this.emitLog(`Skipping role deletion (no permission): ${role.name}`);
+                        } else {
+                            this.emitError(`Failed to delete role ${role.name}: ${error.message}`);
+                        }
                     }
                 }
+                this.emitLog(`Step 6: Completed role deletion: ${deletedCount}/${targetFiltered.length} roles deleted`);
+            } else {
+                this.emitLog('Step 5: No existing roles to delete in target server');
             }
 
-            // Create new roles with proper order (highest position first)
+            // Create new roles with optimized delay
+            this.emitLog(`Step 7: Starting creation of ${sourceFiltered.length} new roles...`);
             for (let i = 0; i < sourceFiltered.length; i++) {
                 if (this.stopped) break;
                 
@@ -351,25 +397,34 @@ class JSCloner {
                         mentionable: role.mentionable
                     };
                     
+                    this.emitLog(`Creating role: "${role.name}" (${i + 1}/${sourceFiltered.length}) - Position: ${role.position}`);
                     const newRole = await this.api.post(`/guilds/${targetGuildId}/roles`, roleData);
-                    this.emitLog(`✅ Created role: ${role.name}`);
+                    this.emitLog(`Successfully created role: "${role.name}" (${i + 1}/${sourceFiltered.length})`);
                     this.stats.rolesCloned++;
                     
                     // Store mapping for later use
                     this.roleMap.set(role.id, newRole.data.id);
                     
-                    await this.delay(1000); // Longer delay for role creation
+                    // Adaptive delay based on server response and remaining roles
+                    const adaptiveDelay = sourceFiltered.length > 10 ? this.roleDelay * 1.5 : this.roleDelay * 2;
+                    await this.delay(adaptiveDelay);
                 } catch (error) {
                     if (error.response?.status === 403) {
                         this.emitError(`Cannot create role ${role.name} - insufficient permissions or role hierarchy issue`);
+                    } else if (error.response?.status === 429) {
+                        // Rate limit hit, wait longer
+                        const retryAfter = error.response.headers['retry-after'] || 5;
+                        this.emitLog(`Rate limited during role creation, waiting ${retryAfter} seconds...`);
+                        await this.delay(retryAfter * 1000);
+                        i--; // Retry this role
                     } else {
                         this.emitError(`Failed to create role ${role.name}: ${error.message}`);
+                        this.stats.errors++;
                     }
-                    this.stats.errors++;
                 }
             }
 
-            this.emitLog(`🎭 Role cloning completed. Created ${this.stats.rolesCloned} roles`);
+            this.emitLog(`Step 8: Role cloning completed successfully! Created ${this.stats.rolesCloned}/${sourceFiltered.length} roles`);
 
         } catch (error) {
             this.emitError(`Role cloning failed: ${error.message}`);
@@ -379,7 +434,8 @@ class JSCloner {
 
     async cloneCategories(sourceGuildId, targetGuildId) {
         try {
-            this.emitLog('📁 Starting category cloning...');
+            this.emitLog('Starting category cloning process...');
+            this.emitLog('Fetching channel data from both servers...');
             const [sourceChannelsResponse, targetChannelsResponse] = await Promise.all([
                 this.api.get(`/guilds/${sourceGuildId}/channels`),
                 this.api.get(`/guilds/${targetGuildId}/channels`)
@@ -393,22 +449,50 @@ class JSCloner {
                 .sort((a, b) => a.position - b.position);
             const targetCategories = targetChannels.filter(c => c.type === 4);
 
-            this.emitLog(`📋 Found ${sourceCategories.length} categories to clone, ${targetCategories.length} categories to delete`);
+            this.emitLog(`Fetched ${sourceChannels.length} channels from source server and ${targetChannels.length} channels from target server`);
+            this.emitLog(`Found ${sourceCategories.length} categories to clone, ${targetCategories.length} categories to delete`);
+            this.emitLog(`Found ${targetCategories.length} existing categories to delete in target server`);
 
-            // Delete existing categories first
-            for (const cat of targetCategories) {
-                if (this.stopped) break;
-                try {
-                    await this.api.delete(`/channels/${cat.id}`);
-                    this.emitLog(`🗑️ Deleted category: ${cat.name}`);
-                    await this.delay(300);
-                } catch (error) {
-                    this.emitError(`Failed to delete category ${cat.name}: ${error.message}`);
+            // Delete existing categories one by one with proper rate limiting
+            if (targetCategories.length > 0) {
+                this.emitLog(`Starting deletion of ${targetCategories.length} existing categories...`);
+                let deletedCount = 0;
+                
+                for (const cat of targetCategories) {
+                    if (this.stopped) break;
+                    
+                    try {
+                        await this.api.delete(`/channels/${cat.id}`);
+                        deletedCount++;
+                        this.emitLog(`Deleted category: "${cat.name}" (${deletedCount}/${targetCategories.length})`);
+                        await this.delay(600); // Wait between deletions
+                    } catch (error) {
+                        if (error.response?.status === 429) {
+                            const retryAfter = (error.response.headers['retry-after'] || 3) * 1000;
+                            this.emitLog(`Rate limited during category deletion, waiting ${retryAfter/1000}s...`);
+                            await this.delay(retryAfter);
+                            
+                            // Retry the deletion
+                            try {
+                                await this.api.delete(`/channels/${cat.id}`);
+                                deletedCount++;
+                                this.emitLog(`Deleted category (retry): "${cat.name}" (${deletedCount}/${targetCategories.length})`);
+                                await this.delay(800);
+                            } catch (retryError) {
+                                this.emitError(`Failed to delete category after retry: ${cat.name}`);
+                            }
+                        } else {
+                            this.emitError(`Failed to delete category ${cat.name}: ${error.message}`);
+                        }
+                    }
                 }
+                this.emitLog(`Completed category deletion: ${deletedCount}/${targetCategories.length} categories deleted`);
             }
 
-            // Create new categories
-            for (const cat of sourceCategories) {
+            // Create new categories with optimized delay
+            this.emitLog(`Starting creation of ${sourceCategories.length} new categories...`);
+            for (let i = 0; i < sourceCategories.length; i++) {
+                const cat = sourceCategories[i];
                 if (this.stopped) break;
                 try {
                     // Map permission overwrites to target guild roles
@@ -437,26 +521,33 @@ class JSCloner {
                     };
                     
                     const newCategory = await this.api.post(`/guilds/${targetGuildId}/channels`, catData);
-                    this.emitLog(`✅ Created category: ${cat.name}`);
+                    this.emitLog(`Created category: ${cat.name} (${i + 1}/${sourceCategories.length})`);
                     this.stats.categoriesCloned++;
                     
                     // Store mapping for channels
                     this.categoryMap.set(cat.id, newCategory.data.id);
                     
-                    await this.delay(500);
+                    await this.delay(this.categoryDelay * 1.5); // Use longer delay
                 } catch (error) {
-                    this.emitError(`Failed to create category ${cat.name}: ${error.message}`);
-                    this.stats.errors++;
+                    if (error.response?.status === 429) {
+                        const retryAfter = error.response.headers['retry-after'] || 3;
+                        this.emitLog(`Rate limited, waiting ${retryAfter} seconds...`);
+                        await this.delay(retryAfter * 1000);
+                        i--; // Retry this category
+                    } else {
+                        this.emitError(`Failed to create category ${cat.name}: ${error.message}`);
+                        this.stats.errors++;
+                    }
                 }
             }
 
-            this.emitLog(`📁 Category cloning completed. Created ${this.stats.categoriesCloned} categories`);
+            this.emitLog(`Category cloning completed. Created ${this.stats.categoriesCloned} categories`);
 
         } catch (error) {
             const status = error.response?.status;
             if (status === 403) {
                 this.emitError('Unable to manage channels. User may not have permission to create/delete channels.');
-                this.emitLog('⏭️ Skipping category cloning due to insufficient permissions...');
+                this.emitLog('Skipping category cloning due to insufficient permissions...');
                 return;
             } else if (status === 400) {
                 this.emitError(`Bad request when managing categories: ${error.response?.data?.message || error.message}`);
@@ -467,7 +558,8 @@ class JSCloner {
 
     async cloneChannels(sourceGuildId, targetGuildId) {
         try {
-            this.emitLog('🔊 Starting channel cloning...');
+            this.emitLog('Starting channel cloning process...');
+            this.emitLog('Fetching channel data from both servers...');
             const [sourceChannelsResponse, targetChannelsResponse] = await Promise.all([
                 this.api.get(`/guilds/${sourceGuildId}/channels`),
                 this.api.get(`/guilds/${targetGuildId}/channels`)
@@ -481,22 +573,43 @@ class JSCloner {
                 .sort((a, b) => a.position - b.position);
             const targetNonCats = targetChannels.filter(c => c.type !== 4);
 
-            this.emitLog(`📋 Found ${sourceNonCats.length} channels to clone, ${targetNonCats.length} channels to delete`);
+            this.emitLog(`Found ${sourceNonCats.length} channels to clone, ${targetNonCats.length} channels to delete`);
 
-            // Delete existing channels first
-            for (const ch of targetNonCats) {
-                if (this.stopped) break;
-                try {
-                    await this.api.delete(`/channels/${ch.id}`);
-                    this.emitLog(`🗑️ Deleted channel: ${ch.name}`);
-                    await this.delay(300);
-                } catch (error) {
-                    this.emitError(`Failed to delete channel ${ch.name}: ${error.message}`);
+            // Delete existing channels one by one with proper rate limiting
+            if (targetNonCats.length > 0) {
+                this.emitLog('Deleting existing channels...');
+                for (const ch of targetNonCats) {
+                    if (this.stopped) break;
+                    
+                    try {
+                        await this.api.delete(`/channels/${ch.id}`);
+                        this.emitLog(`Deleted channel: ${ch.name}`);
+                        await this.delay(400); // Wait between deletions
+                    } catch (error) {
+                        if (error.response?.status === 429) {
+                            const retryAfter = (error.response.headers['retry-after'] || 3) * 1000;
+                            this.emitLog(`Rate limited during channel deletion, waiting ${retryAfter/1000}s...`);
+                            await this.delay(retryAfter);
+                            
+                            // Retry the deletion
+                            try {
+                                await this.api.delete(`/channels/${ch.id}`);
+                                this.emitLog(`Deleted channel (retry): ${ch.name}`);
+                                await this.delay(600);
+                            } catch (retryError) {
+                                this.emitError(`Failed to delete channel after retry: ${ch.name}`);
+                            }
+                        } else {
+                            this.emitError(`Failed to delete channel ${ch.name}: ${error.message}`);
+                        }
+                    }
                 }
             }
 
-            // Create new channels
-            for (const ch of sourceNonCats) {
+            // Create new channels with optimized delay
+            this.emitLog('Creating new channels...');
+            for (let i = 0; i < sourceNonCats.length; i++) {
+                const ch = sourceNonCats[i];
                 if (this.stopped) break;
                 try {
                     // Map permission overwrites
@@ -547,7 +660,7 @@ class JSCloner {
                     }
 
                     const newChannel = await this.api.post(`/guilds/${targetGuildId}/channels`, channelData);
-                    this.emitLog(`✅ Created ${ch.type === 0 ? 'text' : 'voice'} channel: ${ch.name}`);
+                    this.emitLog(`Created ${ch.type === 0 ? 'text' : 'voice'} channel: ${ch.name} (${i + 1}/${sourceNonCats.length})`);
                     
                     // Store mapping
                     this.channelMap.set(ch.id, newChannel.data.id);
@@ -555,20 +668,27 @@ class JSCloner {
                     if (ch.type === 0) this.stats.textChannelsCloned++;
                     else if (ch.type === 2) this.stats.voiceChannelsCloned++;
                     
-                    await this.delay(500);
+                    await this.delay(this.channelDelay * 1.5); // Use longer delay
                 } catch (error) {
-                    this.emitError(`Failed to create channel ${ch.name}: ${error.message}`);
-                    this.stats.errors++;
+                    if (error.response?.status === 429) {
+                        const retryAfter = error.response.headers['retry-after'] || 3;
+                        this.emitLog(`Rate limited, waiting ${retryAfter} seconds...`);
+                        await this.delay(retryAfter * 1000);
+                        i--; // Retry this channel
+                    } else {
+                        this.emitError(`Failed to create channel ${ch.name}: ${error.message}`);
+                        this.stats.errors++;
+                    }
                 }
             }
 
-            this.emitLog(`🔊 Channel cloning completed. Created ${this.stats.textChannelsCloned + this.stats.voiceChannelsCloned} channels`);
+            this.emitLog(`Channel cloning completed. Created ${this.stats.textChannelsCloned + this.stats.voiceChannelsCloned} channels`);
 
         } catch (error) {
             const status = error.response?.status;
             if (status === 403) {
                 this.emitError('Unable to manage channels. User may not have permission to create/delete channels.');
-                this.emitLog('⏭️ Skipping channel cloning due to insufficient permissions...');
+                this.emitLog('Skipping channel cloning due to insufficient permissions...');
                 return;
             } else if (status === 400) {
                 this.emitError(`Bad request when managing channels: ${error.response?.data?.message || error.message}`);
@@ -581,6 +701,7 @@ class JSCloner {
         const messageLimit = parseInt(this.options.messageLimit) || 50;
         this.emitLog(`Preparing to clone up to ${messageLimit} messages per channel...`);
         
+        this.emitLog('Fetching channels from both servers...');
         const [sourceChannelsResponse, targetChannelsResponse] = await Promise.all([
             this.api.get(`/guilds/${sourceGuildId}/channels`),
             this.api.get(`/guilds/${targetGuildId}/channels`)
@@ -590,9 +711,11 @@ class JSCloner {
         const targetChannels = targetChannelsResponse.data;
 
         const sourceTextChannels = sourceChannels.filter(c => c.type === 0);
-        this.emitLog(`Found ${sourceTextChannels.length} text channels to clone messages from`);
+        this.emitLog(`Found ${sourceTextChannels.length} text channels in source server to clone messages from`);
 
         let totalCloned = 0;
+        let totalChannelsProcessed = 0;
+        
         for (let i = 0; i < sourceTextChannels.length; i++) {
             if (this.stopped) break;
             
@@ -600,16 +723,16 @@ class JSCloner {
             const targetChannel = targetChannels.find(c => c.name === sourceChannel.name && c.type === 0);
             
             if (!targetChannel) {
-                this.emitLog(`Target channel not found for: ${sourceChannel.name}, skipping...`);
+                this.emitLog(`WARNING: Target channel not found for: "${sourceChannel.name}", skipping...`);
                 continue;
             }
 
             try {
-                this.emitLog(`Fetching messages from channel: ${sourceChannel.name}`);
+                this.emitLog(`Fetching messages from channel: "${sourceChannel.name}" (${i + 1}/${sourceTextChannels.length})`);
                 const response = await this.api.get(`/channels/${sourceChannel.id}/messages?limit=${messageLimit}`);
                 const messages = response.data.reverse();
 
-                this.emitLog(`Found ${messages.length} messages in ${sourceChannel.name}, cloning...`);
+                this.emitLog(`Found ${messages.length} messages in "${sourceChannel.name}", starting clone process...`);
                 let clonedInChannel = 0;
 
                 for (const msg of messages) {
@@ -618,7 +741,6 @@ class JSCloner {
                     try {
                         let content = `**${msg.author.username}** (${new Date(msg.timestamp).toLocaleString()})\n`;
                         if (msg.content) content += msg.content;
-                        
                         if (msg.attachments?.length > 0) {
                             content += '\n\n**Attachments:**\n';
                             msg.attachments.forEach(att => content += `${att.url}\n`);
@@ -631,8 +753,8 @@ class JSCloner {
                         clonedInChannel++;
                         totalCloned++;
                         
-                        if (clonedInChannel % 10 === 0) {
-                            this.emitLog(`Cloned ${clonedInChannel}/${messages.length} messages in ${sourceChannel.name}`);
+                        if (clonedInChannel % 10 === 0 || clonedInChannel === messages.length) {
+                            this.emitLog(`Progress: ${clonedInChannel}/${messages.length} messages cloned in "${sourceChannel.name}"`);
                             this.emitStats();
                         }
                         
@@ -640,7 +762,7 @@ class JSCloner {
                     } catch (error) {
                         if (error.response?.status === 429) {
                             const retryAfter = (error.response.headers['retry-after'] || 5) * 1000;
-                            this.emitLog(`Rate limited, waiting ${retryAfter/1000}s...`);
+                            this.emitLog(`Rate limited during message cloning, waiting ${retryAfter/1000}s...`);
                             await this.delay(retryAfter);
                         } else {
                             this.emitError(`Failed to clone message: ${error.message}`);
@@ -649,20 +771,21 @@ class JSCloner {
                     }
                 }
 
-                this.emitLog(`Completed ${sourceChannel.name} (${clonedInChannel} messages) - ${i + 1}/${sourceTextChannels.length} channels done`);
+                totalChannelsProcessed++;
+                this.emitLog(`Completed "${sourceChannel.name}": ${clonedInChannel}/${messages.length} messages cloned - Progress: ${totalChannelsProcessed}/${sourceTextChannels.length} channels done`);
                 this.emitStats();
             } catch (error) {
-                this.emitError(`Failed to fetch messages from ${sourceChannel.name}: ${error.message}`);
+                this.emitError(`Failed to fetch messages from "${sourceChannel.name}": ${error.message}`);
                 this.stats.errors++;
             }
         }
         
-        this.emitLog(`Message cloning completed. Cloned ${totalCloned} total messages`);
+        this.emitLog(`Message cloning completed. Cloned ${totalCloned} total messages from ${totalChannelsProcessed} channels`);
     }
 
     async cloneEmojis(sourceGuildId, targetGuildId) {
         try {
-            this.emitLog('😀 Starting emoji cloning...');
+            this.emitLog('Starting emoji cloning...');
             const [sourceEmojisResponse, targetEmojisResponse] = await Promise.all([
                 this.api.get(`/guilds/${sourceGuildId}/emojis`),
                 this.api.get(`/guilds/${targetGuildId}/emojis`)
@@ -671,14 +794,14 @@ class JSCloner {
             const sourceEmojis = sourceEmojisResponse.data;
             const targetEmojis = targetEmojisResponse.data;
 
-            this.emitLog(`📋 Found ${sourceEmojis.length} emojis to clone, ${targetEmojis.length} emojis to delete`);
+            this.emitLog(`Found ${sourceEmojis.length} emojis to clone, ${targetEmojis.length} emojis to delete`);
 
             // Delete existing emojis first
             for (const emoji of targetEmojis) {
                 if (this.stopped) break;
                 try {
                     await this.api.delete(`/guilds/${targetGuildId}/emojis/${emoji.id}`);
-                    this.emitLog(`🗑️ Deleted emoji: ${emoji.name}`);
+                    this.emitLog(`Deleted emoji: ${emoji.name}`);
                     await this.delay(300);
                 } catch (error) {
                     this.emitError(`Failed to delete emoji ${emoji.name}: ${error.message}`);
@@ -691,7 +814,7 @@ class JSCloner {
                 try {
                     // Download emoji image
                     const emojiUrl = `https://cdn.discordapp.com/emojis/${emoji.id}.${emoji.animated ? 'gif' : 'png'}`;
-                    this.emitLog(`📥 Downloading emoji: ${emoji.name}`);
+                    this.emitLog(`Downloading emoji: ${emoji.name}`);
                     
                     const imageResponse = await axios.get(emojiUrl, { responseType: 'arraybuffer' });
                     const imageBase64 = `data:image/${emoji.animated ? 'gif' : 'png'};base64,${Buffer.from(imageResponse.data).toString('base64')}`;
@@ -703,7 +826,7 @@ class JSCloner {
                     };
 
                     await this.api.post(`/guilds/${targetGuildId}/emojis`, emojiData);
-                    this.emitLog(`✅ Created emoji: ${emoji.name}`);
+                    this.emitLog(`Created emoji: ${emoji.name}`);
                     this.stats.emojisCloned++;
                     
                     await this.delay(1000); // Longer delay for emoji creation
@@ -719,13 +842,13 @@ class JSCloner {
                 }
             }
 
-            this.emitLog(`😀 Emoji cloning completed. Created ${this.stats.emojisCloned} emojis`);
+            this.emitLog(`Emoji cloning completed. Created ${this.stats.emojisCloned} emojis`);
 
         } catch (error) {
             const status = error.response?.status;
             if (status === 403) {
                 this.emitError('Unable to manage emojis. User may not have permission to manage emojis in this server.');
-                this.emitLog('⏭️ Skipping emoji cloning due to insufficient permissions...');
+                this.emitLog('Skipping emoji cloning due to insufficient permissions...');
                 return;
             } else if (status === 400) {
                 this.emitError(`Bad request when managing emojis: ${error.response?.data?.message || error.message}`);
@@ -736,7 +859,7 @@ class JSCloner {
 
     async cloneWebhooks(sourceGuildId, targetGuildId) {
         try {
-            this.emitLog('🔗 Starting webhook cloning...');
+            this.emitLog('Starting webhook cloning...');
             
             // Get all channels from both guilds to iterate through
             const [sourceChannelsResponse, targetChannelsResponse] = await Promise.all([
@@ -760,12 +883,12 @@ class JSCloner {
                     
                     if (webhooks.length > 0) {
                         totalWebhooks += webhooks.length;
-                        this.emitLog(`📋 Found ${webhooks.length} webhooks in channel: ${sourceChannel.name}`);
+                        this.emitLog(`Found ${webhooks.length} webhooks in channel: ${sourceChannel.name}`);
                         
                         // Find corresponding target channel
                         const targetChannel = targetChannels.find(c => c.name === sourceChannel.name);
                         if (!targetChannel) {
-                            this.emitLog(`⚠️ Target channel not found for: ${sourceChannel.name}, skipping webhooks...`);
+                            this.emitLog(`WARNING: Target channel not found for: ${sourceChannel.name}, skipping webhooks...`);
                             continue;
                         }
 
@@ -783,7 +906,7 @@ class JSCloner {
                                         const avatarResponse = await axios.get(avatarUrl, { responseType: 'arraybuffer' });
                                         avatarData = `data:image/png;base64,${Buffer.from(avatarResponse.data).toString('base64')}`;
                                     } catch (avatarError) {
-                                        this.emitLog(`⚠️ Failed to download avatar for webhook ${webhook.name}: ${avatarError.message}`);
+                                        this.emitLog(`WARNING: Failed to download avatar for webhook ${webhook.name}: ${avatarError.message}`);
                                     }
                                 }
 
@@ -793,7 +916,7 @@ class JSCloner {
                                 };
 
                                 await this.api.post(`/channels/${targetChannel.id}/webhooks`, webhookData);
-                                this.emitLog(`✅ Created webhook: ${webhook.name} in ${targetChannel.name}`);
+                                this.emitLog(`Created webhook: ${webhook.name} in ${targetChannel.name}`);
                                 this.stats.webhooksCloned++;
                                 clonedWebhooks++;
                                 
@@ -812,20 +935,20 @@ class JSCloner {
                     }
                 } catch (error) {
                     if (error.response?.status === 403) {
-                        this.emitLog(`⚠️ Cannot access webhooks in channel ${sourceChannel.name} - insufficient permissions`);
+                        this.emitLog(`WARNING: Cannot access webhooks in channel ${sourceChannel.name} - insufficient permissions`);
                     } else {
                         this.emitError(`Failed to get webhooks from ${sourceChannel.name}: ${error.message}`);
                     }
                 }
             }
 
-            this.emitLog(`🔗 Webhook cloning completed. Found ${totalWebhooks} webhooks, created ${clonedWebhooks} webhooks`);
+            this.emitLog(`Webhook cloning completed. Found ${totalWebhooks} webhooks, created ${clonedWebhooks} webhooks`);
 
         } catch (error) {
             const status = error.response?.status;
             if (status === 403) {
                 this.emitError('Unable to manage webhooks. User may not have permission to manage webhooks in this server.');
-                this.emitLog('⏭️ Skipping webhook cloning due to insufficient permissions...');
+                this.emitLog('Skipping webhook cloning due to insufficient permissions...');
                 return;
             } else if (status === 400) {
                 this.emitError(`Bad request when managing webhooks: ${error.response?.data?.message || error.message}`);

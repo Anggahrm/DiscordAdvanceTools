@@ -274,6 +274,12 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
+    socket.on('cloneLog', function(data) {
+        if (data.clonerId === currentClonerId) {
+            addLog(data.message);
+        }
+    });
+
     socket.on('cloneComplete', function(data) {
         if (data.clonerId === currentClonerId) {
             startBtn.classList.remove('d-none');

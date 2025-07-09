@@ -9,6 +9,7 @@ class ConfigManager {
             webhook_url: '',
             channel_ids: [],
             saved_channels: {},
+            autopost_channels: [],
             max_retries: 3,
             rate_limit_delay: 1000,
             enable_logging: false,
@@ -192,7 +193,8 @@ class ConfigManager {
         return {
             token: this.config.discord_token,
             webhookUrl: this.config.webhook_url,
-            useWebhook: !!this.config.webhook_url
+            useWebhook: !!this.config.webhook_url,
+            channels: this.config.autopost_channels || []
         };
     }
 
@@ -216,6 +218,39 @@ class ConfigManager {
         if (updates.token) mappedUpdates.discord_token = updates.token;
         if (updates.webhookUrl) mappedUpdates.webhook_url = updates.webhookUrl;
         return await this.updateConfig(mappedUpdates);
+    }
+
+    // Autopost channel management methods
+    async addChannel(channelId, message, interval) {
+        if (!this.config.autopost_channels) {
+            this.config.autopost_channels = [];
+        }
+        
+        // Remove existing channel with same ID
+        this.config.autopost_channels = this.config.autopost_channels.filter(c => c.id !== channelId);
+        
+        // Add new channel
+        this.config.autopost_channels.push({
+            id: channelId,
+            message: message,
+            interval: interval
+        });
+        
+        await this.saveConfig();
+    }
+
+    async removeChannel(channelId) {
+        if (!this.config.autopost_channels) {
+            this.config.autopost_channels = [];
+        }
+        
+        this.config.autopost_channels = this.config.autopost_channels.filter(c => c.id !== channelId);
+        await this.saveConfig();
+    }
+
+    async clearChannels() {
+        this.config.autopost_channels = [];
+        await this.saveConfig();
     }
 }
 

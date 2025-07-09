@@ -13,8 +13,8 @@ const server = http.createServer(app);
 const io = socketIo(server);
 
 // Global instances
-const autoPoster = new AutoPoster();
 const configManager = new ConfigManager();
+const autoPoster = new AutoPoster(io);
 
 // Middleware
 app.use(express.json());
@@ -238,15 +238,15 @@ app.get('/api/cloning/status', (req, res) => {
 
 app.post('/autopost/start', validateConfig(['discord_token', 'webhook_url']), async (req, res) => {
     try {
-        const { channelId, channelIds, message, interval, options } = req.body;
+        const { channels, messages, interval, options } = req.body;
         
-        // Support both single channelId and multiple channelIds
-        const targetChannels = channelIds && Array.isArray(channelIds) ? channelIds : 
-                              (channelIds ? [channelIds] : 
-                              (channelId ? [channelId] : []));
+        // Validate input
+        if (!channels || !Array.isArray(channels) || channels.length === 0) {
+            return sendError(res, 'At least one channel ID is required');
+        }
         
-        if (targetChannels.length === 0 || !message) {
-            return sendError(res, 'At least one channel ID and message are required');
+        if (!messages || !Array.isArray(messages) || messages.length === 0) {
+            return sendError(res, 'At least one message is required');
         }
 
         const intervalMinutes = parseInt(interval) || 60;
@@ -256,14 +256,10 @@ app.post('/autopost/start', validateConfig(['discord_token', 'webhook_url']), as
 
         // Update autoPoster configuration
         const autopostConfig = {
-            token: req.config.discord_token,
-            webhookUrl: req.config.webhook_url,
-            useWebhook: true,
-            channels: targetChannels.map(channelId => ({
-                id: channelId,
-                message: message,
-                interval: intervalMinutes * 60 // Convert to seconds
-            }))
+            channels: channels,
+            messages: messages,
+            interval: intervalMinutes,
+            options: options || {}
         };
 
         await autoPoster.updateConfig(autopostConfig);
@@ -271,17 +267,11 @@ app.post('/autopost/start', validateConfig(['discord_token', 'webhook_url']), as
         // Start the autoPoster
         autoPoster.start();
 
-        // Emit initial status
-        io.emit('autopostMessage', {
-            message: 'Auto posting started successfully',
-            timestamp: new Date(),
-            status: 'started'
-        });
-
         sendSuccess(res, { 
-            channelIds: targetChannels,
+            channels: channels,
+            messages: messages,
             interval: intervalMinutes,
-            message: message
+            options: options || {}
         }, 'Auto posting started');
     } catch (error) {
         handleRouteError(res, error, 'Auto post start');
@@ -317,15 +307,18 @@ app.post('/autopost/test', validateConfig(['webhook_url']), async (req, res) => 
 
 app.get('/autopost/status', (req, res) => {
     const status = autoPoster.getStatus();
-    const config = autoPoster.getConfig();
     
     res.json({
         isRunning: status.isRunning,
         activeChannels: status.activeChannels,
+        totalMessages: status.totalMessages,
         runningTimers: status.runningTimers,
-        channels: config.channels || [],
-        nextPost: status.isRunning && config.channels && config.channels.length > 0 ? 
-                  Date.now() + (config.channels[0].interval * 1000) : null
+        options: status.options,
+        stats: status.stats,
+        channels: status.channels || [],
+        messages: status.messages || [],
+        interval: status.interval || 60,
+        nextPost: status.isRunning ? Date.now() + autoPoster.getNextPostTime() : null
     });
 });
 

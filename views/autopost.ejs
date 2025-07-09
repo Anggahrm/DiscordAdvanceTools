@@ -8,32 +8,94 @@
             </div>
             <div class="card-body">
                 <form id="autopostForm">
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <label for="channelId" class="form-label">
-                                <i class="fas fa-hashtag me-1"></i>Channel ID
-                            </label>
-                            <input type="text" class="form-control" id="channelId" name="channelId" 
-                                   placeholder="Enter channel ID" required>
-                            <div class="form-text">The channel where messages will be posted</div>
+                    <!-- Multi Channel Section -->
+                    <div class="mb-3">
+                        <label class="form-label">
+                            <i class="fas fa-hashtag me-1"></i>Channel IDs
+                        </label>
+                        <div id="channelsList"></div>
+                        <button type="button" class="btn btn-sm btn-outline-primary mt-2" id="addChannelBtn">
+                            <i class="fas fa-plus me-1"></i>Add Channel
+                        </button>
+                        <div class="form-text">Add multiple channels for posting messages</div>
+                    </div>
+
+                    <!-- Interval Section -->
+                    <div class="mb-3">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label for="interval" class="form-label">
+                                    <i class="fas fa-clock me-1"></i>Interval (minutes)
+                                </label>
+                                <input type="number" class="form-control" id="interval" name="interval" 
+                                       value="60" min="1" required>
+                                <div class="form-text">Base time between posts</div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check mt-4">
+                                    <input class="form-check-input" type="checkbox" id="randomInterval" name="randomInterval">
+                                    <label class="form-check-label" for="randomInterval">
+                                        <i class="fas fa-random me-1"></i>Random Interval
+                                    </label>
+                                    <div class="form-text">Use random intervals between posts</div>
+                                </div>
+                            </div>
                         </div>
-                        <div class="col-md-6">
-                            <label for="interval" class="form-label">
-                                <i class="fas fa-clock me-1"></i>Interval (minutes)
-                            </label>
-                            <input type="number" class="form-control" id="interval" name="interval" 
-                                   value="60" min="1" required>
-                            <div class="form-text">Time between posts</div>
+                        
+                        <!-- Random Interval Options -->
+                        <div class="mt-3" id="randomIntervalSection" style="display: none;">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <label for="minInterval" class="form-label">
+                                        <i class="fas fa-hourglass-start me-1"></i>Min Interval (minutes)
+                                    </label>
+                                    <input type="number" class="form-control" id="minInterval" name="minInterval" 
+                                           value="30" min="1">
+                                    <div class="form-text">Minimum time between posts</div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="maxInterval" class="form-label">
+                                        <i class="fas fa-hourglass-end me-1"></i>Max Interval (minutes)
+                                    </label>
+                                    <input type="number" class="form-control" id="maxInterval" name="maxInterval" 
+                                           value="120" min="1">
+                                    <div class="form-text">Maximum time between posts</div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
+                    <!-- Messages Section -->
                     <div class="mb-3">
-                        <label for="messageContent" class="form-label">
-                            <i class="fas fa-comment me-1"></i>Message Content
+                        <label class="form-label">
+                            <i class="fas fa-comment me-1"></i>Messages for Random Selection
                         </label>
-                        <textarea class="form-control" id="messageContent" name="messageContent" 
-                                  rows="4" placeholder="Enter your message content..." required></textarea>
-                        <div class="form-text">The message that will be posted automatically</div>
+                        <div id="messagesList"></div>
+                        <button type="button" class="btn btn-sm btn-outline-primary mt-2" id="addMessageBtn">
+                            <i class="fas fa-plus me-1"></i>Add Message
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary mt-2 ms-2" id="bulkAddBtn">
+                            <i class="fas fa-layer-group me-1"></i>Bulk Add
+                        </button>
+                        <div class="form-text">Add multiple messages for random selection during autopost</div>
+                    </div>
+
+                    <!-- Bulk Add Section (hidden by default) -->
+                    <div class="mb-3" id="bulkAddSection" style="display: none;">
+                        <label for="bulkMessages" class="form-label">
+                            <i class="fas fa-paste me-1"></i>Bulk Add Messages
+                        </label>
+                        <textarea class="form-control" id="bulkMessages" name="bulkMessages" rows="8" 
+                                  placeholder="Enter messages, one per line:&#10;&#10;Message 1&#10;Message 2&#10;Message 3&#10;..."></textarea>
+                        <div class="mt-2">
+                            <button type="button" class="btn btn-sm btn-success" id="confirmBulkAdd">
+                                <i class="fas fa-check me-1"></i>Add All Messages
+                            </button>
+                            <button type="button" class="btn btn-sm btn-secondary" id="cancelBulkAdd">
+                                <i class="fas fa-times me-1"></i>Cancel
+                            </button>
+                        </div>
+                        <div class="form-text">Enter one message per line. All messages will be added to the list.</div>
                     </div>
 
                     <div class="card mb-3">
@@ -45,13 +107,6 @@
                         <div class="card-body">
                             <div class="row">
                                 <div class="col-md-6">
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" id="randomMessage" name="randomMessage">
-                                        <label class="form-check-label" for="randomMessage">
-                                            <i class="fas fa-random me-1"></i>Random Message
-                                        </label>
-                                        <div class="form-text">Use random messages from a list</div>
-                                    </div>
                                     <div class="form-check">
                                         <input class="form-check-input" type="checkbox" id="deleteAfter" name="deleteAfter">
                                         <label class="form-check-label" for="deleteAfter">
@@ -172,24 +227,160 @@ document.addEventListener('DOMContentLoaded', function() {
     const stopBtn = document.getElementById('stopAutopostBtn');
     const logsContainer = document.getElementById('autopostLogs');
     
+    // New elements for enhanced features
+    const channelsList = document.getElementById('channelsList');
+    const addChannelBtn = document.getElementById('addChannelBtn');
+    const messagesList = document.getElementById('messagesList');
+    const addMessageBtn = document.getElementById('addMessageBtn');
+    const bulkAddBtn = document.getElementById('bulkAddBtn');
+    const bulkAddSection = document.getElementById('bulkAddSection');
+    const confirmBulkAdd = document.getElementById('confirmBulkAdd');
+    const cancelBulkAdd = document.getElementById('cancelBulkAdd');
+    const bulkMessages = document.getElementById('bulkMessages');
+    const randomIntervalCheckbox = document.getElementById('randomInterval');
+    const randomIntervalSection = document.getElementById('randomIntervalSection');
+    
     let isRunning = false;
     let startTime = null;
     let runningTimeInterval = null;
+    let channels = [];
+    let messages = [];
+
+    // Initialize with one channel and one message
+    addChannel();
+    addMessage();
+
+    // Toggle random interval section
+    randomIntervalCheckbox.addEventListener('change', function() {
+        randomIntervalSection.style.display = this.checked ? 'block' : 'none';
+    });
+
+    // Channel management
+    addChannelBtn.addEventListener('click', addChannel);
+
+    function addChannel(channelId = '') {
+        const channelDiv = document.createElement('div');
+        channelDiv.className = 'input-group mb-2';
+        channelDiv.innerHTML = `
+            <input type="text" class="form-control channel-input" 
+                   placeholder="Enter channel ID..." value="${channelId}">
+            <button type="button" class="btn btn-outline-danger remove-channel-btn">
+                <i class="fas fa-trash"></i>
+            </button>
+        `;
+        
+        channelDiv.querySelector('.remove-channel-btn').addEventListener('click', function() {
+            if (channelsList.children.length > 1) {
+                channelDiv.remove();
+                updateChannels();
+            } else {
+                alert('At least one channel is required');
+            }
+        });
+        
+        channelDiv.querySelector('.channel-input').addEventListener('input', updateChannels);
+        
+        channelsList.appendChild(channelDiv);
+        updateChannels();
+    }
+
+    function updateChannels() {
+        const inputs = channelsList.querySelectorAll('.channel-input');
+        channels = Array.from(inputs)
+            .map(input => input.value.trim())
+            .filter(id => id.length > 0);
+    }
+
+    // Message management
+    addMessageBtn.addEventListener('click', addMessage);
+
+    function addMessage(message = '') {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'input-group mb-2';
+        messageDiv.innerHTML = `
+            <textarea class="form-control message-input" rows="2" 
+                      placeholder="Enter message content..." style="resize: vertical;">${message}</textarea>
+            <button type="button" class="btn btn-outline-danger remove-message-btn">
+                <i class="fas fa-trash"></i>
+            </button>
+        `;
+        
+        messageDiv.querySelector('.remove-message-btn').addEventListener('click', function() {
+            if (messagesList.children.length > 1) {
+                messageDiv.remove();
+                updateMessages();
+            } else {
+                alert('At least one message is required');
+            }
+        });
+        
+        messageDiv.querySelector('.message-input').addEventListener('input', updateMessages);
+        
+        messagesList.appendChild(messageDiv);
+        updateMessages();
+    }
+
+    function updateMessages() {
+        const inputs = messagesList.querySelectorAll('.message-input');
+        messages = Array.from(inputs)
+            .map(input => input.value.trim())
+            .filter(msg => msg.length > 0);
+    }
+
+    // Bulk add messages
+    bulkAddBtn.addEventListener('click', function() {
+        bulkAddSection.style.display = 'block';
+        bulkMessages.focus();
+    });
+
+    confirmBulkAdd.addEventListener('click', function() {
+        const bulkText = bulkMessages.value.trim();
+        if (bulkText) {
+            const newMessages = bulkText.split('\n')
+                .map(msg => msg.trim())
+                .filter(msg => msg.length > 0);
+            
+            newMessages.forEach(message => addMessage(message));
+            bulkMessages.value = '';
+            bulkAddSection.style.display = 'none';
+        }
+    });
+
+    cancelBulkAdd.addEventListener('click', function() {
+        bulkMessages.value = '';
+        bulkAddSection.style.display = 'none';
+    });
 
     // Form submission
     autopostForm.addEventListener('submit', async function(e) {
         e.preventDefault();
         
+        // Update arrays before submitting
+        updateChannels();
+        updateMessages();
+        
+        if (channels.length === 0) {
+            alert('Please add at least one channel ID');
+            return;
+        }
+        
+        if (messages.length === 0) {
+            alert('Please add at least one message');
+            return;
+        }
+        
         const formData = new FormData(autopostForm);
         const data = {
-            channelId: formData.get('channelId'),
-            message: formData.get('messageContent'),
+            channels: channels,
+            messages: messages,
             interval: parseInt(formData.get('interval')) || 60,
             options: {
-                randomMessage: formData.has('randomMessage'),
                 deleteAfter: formData.has('deleteAfter'),
                 useEmbed: formData.has('useEmbed'),
-                mentionEveryone: formData.has('mentionEveryone')
+                mentionEveryone: formData.has('mentionEveryone'),
+                randomInterval: formData.has('randomInterval'),
+                minInterval: formData.has('randomInterval') ? parseInt(formData.get('minInterval')) || 30 : null,
+                maxInterval: formData.has('randomInterval') ? parseInt(formData.get('maxInterval')) || 120 : null
             }
         };
 
@@ -209,7 +400,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 stopBtn.classList.remove('d-none');
                 document.getElementById('currentStatus').textContent = 'Running';
                 document.getElementById('currentStatus').className = 'badge bg-success';
-                document.getElementById('targetChannel').textContent = data.channelId;
+                document.getElementById('targetChannel').textContent = channels.join(', ');
                 
                 startRunningTimer();
                 addLog('Auto posting started successfully!', 'success');
@@ -239,23 +430,45 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Socket events
+    socket.on('autopostStarted', function(data) {
+        addLog('Auto posting started', 'success');
+        updateStats(data.stats);
+    });
+
     socket.on('autopostMessage', function(data) {
-        const messagesPosted = parseInt(document.getElementById('messagesPosted').textContent) + 1;
-        document.getElementById('messagesPosted').textContent = messagesPosted;
+        updateStats(data.stats);
         document.getElementById('lastPost').textContent = new Date().toLocaleTimeString();
+        
+        if (data.nextPost) {
+            const nextTime = new Date(data.nextPost).toLocaleTimeString();
+            document.getElementById('nextPost').textContent = nextTime;
+        }
+        
         addLog(`Message posted to channel ${data.channelId}`, 'success');
     });
 
     socket.on('autopostError', function(data) {
-        const errorsCount = parseInt(document.getElementById('errorsCount').textContent) + 1;
-        document.getElementById('errorsCount').textContent = errorsCount;
+        updateStats(data.stats);
         addLog(`Error: ${data.error}`, 'error');
     });
 
     socket.on('autopostStopped', function(data) {
         stopAutoPost();
+        updateStats(data.stats);
         addLog('Auto posting stopped', 'warning');
     });
+
+    socket.on('autopostLog', function(data) {
+        const logType = data.success ? 'success' : 'error';
+        addLog(data.message, logType);
+    });
+
+    function updateStats(stats) {
+        if (stats) {
+            document.getElementById('messagesPosted').textContent = stats.messagesPosted || 0;
+            document.getElementById('errorsCount').textContent = stats.errorsCount || 0;
+        }
+    }
 
     function startRunningTimer() {
         runningTimeInterval = setInterval(() => {
@@ -303,6 +516,44 @@ document.addEventListener('DOMContentLoaded', function() {
         
         logsContainer.appendChild(logEntry);
         logsContainer.scrollTop = logsContainer.scrollHeight;
+        
+        // Clear the placeholder text if it exists
+        const placeholder = logsContainer.querySelector('.text-muted');
+        if (placeholder && placeholder.textContent.includes('Logs will appear here')) {
+            placeholder.remove();
+        }
     }
+
+    // Load current status on page load
+    async function loadStatus() {
+        try {
+            const response = await fetch('/autopost/status');
+            const status = await response.json();
+            
+            if (status.isRunning) {
+                isRunning = true;
+                startBtn.classList.add('d-none');
+                stopBtn.classList.remove('d-none');
+                document.getElementById('currentStatus').textContent = 'Running';
+                document.getElementById('currentStatus').className = 'badge bg-success';
+                
+                if (status.stats && status.stats.startTime) {
+                    startTime = new Date(status.stats.startTime);
+                    startRunningTimer();
+                }
+                
+                updateStats(status.stats);
+            }
+            
+            if (status.channels && status.channels.length > 0) {
+                document.getElementById('targetChannel').textContent = status.channels.map(c => c.id || c).join(', ');
+            }
+        } catch (error) {
+            console.error('Failed to load status:', error);
+        }
+    }
+
+    // Load status on page load
+    loadStatus();
 });
 </script>
